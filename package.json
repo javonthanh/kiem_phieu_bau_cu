@@ -1,0 +1,82 @@
+{
+  "author": "Truong Tan Thanh",
+  "build": {
+    "appId": "com.tally.app",
+    "directories": {
+      "output": "release"
+    },
+    "extraResources": [
+      {
+        "from": "preload.js",
+        "to": "preload.js"
+      }
+    ],
+    "files": [
+      "out/**/*",
+      "main.js",
+      "package.json",
+      "node_modules/**/*",
+      "dist/**/*",
+      "preload.js",
+      "public/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.utilities"
+    },
+    "productName": "KIEM_PHIEU_BAU_CU",
+    "win": {
+      "icon": "icon.ico",
+      "target": "portable"
+    }
+  },
+  "dependencies": {
+    "@teachablemachine/image": "^0.8.5",
+    "@tensorflow/tfjs": "^4.22.0",
+    "crypto-js": "^4.2.0",
+    "dexie": "^4.2.1",
+    "dexie-react-hooks": "^4.2.0",
+    "docx": "^9.5.1",
+    "docxtemplater": "^3.67.6",
+    "electron-serve": "^3.0.1",
+    "file-saver": "^2.0.5",
+    "jszip": "^3.10.1",
+    "lucide-react": "^0.562.0",
+    "next": "16.1.1",
+    "node-machine-id": "^1.1.12",
+    "pizzip": "^3.2.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-draggable": "^4.5.0",
+    "xlsx": "^0.18.5",
+    "xlsx-js-style": "^1.2.0"
+  },
+  "description": "Phần mềm đối soát và kiểm phiếu bầu",
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/crypto-js": "^4.2.2",
+    "@types/file-saver": "^2.0.7",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "concurrently": "^9.2.1",
+    "electron": "^39.2.7",
+    "electron-builder": "^26.0.12",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.1",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  },
+  "main": "main.js",
+  "name": "phan-mem-kiem-phieu-bau-cu",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "build-next": "next build",
+    "dev": "next dev",
+    "dist": "npm run build-next && electron-builder --win",
+    "electron:build": "npm run build && electron .",
+    "electron:dev": "concurrently \"npm run dev\" \"electron .\"",
+    "start": "next start -p 3000"
+  },
+  "version": "1.0.0"
+}

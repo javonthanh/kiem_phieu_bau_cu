@@ -1,0 +1,20 @@
+{
+    "background_color": "#ffffff",
+    "display": "standalone",
+    "icons": [
+        {
+            "sizes": "192x192",
+            "src": "/icon-192.png",
+            "type": "image/png"
+        },
+        {
+            "sizes": "512x512",
+            "src": "/icon-512.png",
+            "type": "image/png"
+        }
+    ],
+    "name": "Hệ thống Kiểm phiếu 2026",
+    "short_name": "KiểmPhiếu",
+    "start_url": "/",
+    "theme_color": "#2563eb"
+}
