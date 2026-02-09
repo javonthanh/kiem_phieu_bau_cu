@@ -118,32 +118,99 @@ const REPORT_TEMPLATES_XA = [
     witnessesCounting: "", // 2 Cử tri chứng kiến kiểm phiếu
   });
 
-// Hàm Export: Lấy dữ liệu trực tiếp từ DB và tải về
+// // Hàm Export: Lấy dữ liệu trực tiếp từ DB và tải về
+// const exportConfig = async () => {
+//   try {
+//     const configData = await db.config.toCollection().first();
+//     const candidatesData = await db.candidates.toArray();
+    
+//     const data = {
+//       config: configData,
+//       candidates: candidatesData,
+//       version: "1.0",
+//       exportedAt: new Date().toISOString()
+//     };
+
+//     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+//     const url = URL.createObjectURL(blob);
+//     const link = document.createElement("a");
+//     link.href = url;
+//     link.download = `config-bau-cu-${new Date().getTime()}.json`;
+//     link.click();
+//     URL.revokeObjectURL(url);
+//   } catch (error) {
+//     alert("Lỗi khi xuất dữ liệu!");
+//   }
+// };
+
+// // Hàm Import: Ghi đè dữ liệu vào IndexDB
+// const importConfig = async (e) => {
+//   const file = e.target.files[0];
+//   if (!file) return;
+
+//   const reader = new FileReader();
+//   reader.onload = async (event) => {
+//     try {
+//       const importedData = JSON.parse(event.target.result);
+
+//       // 1. Validation cơ bản
+//       if (!importedData.config || !Array.isArray(importedData.candidates)) {
+//         throw new Error("Dữ liệu không đúng định dạng");
+//       }
+
+//       // 2. Sử dụng Dexie Transaction để đảm bảo an toàn dữ liệu
+//       await db.transaction('rw', db.config, db.candidates, async () => {
+//         // Xóa dữ liệu cũ
+//         await db.config.clear();
+//         await db.candidates.clear();
+
+//         // Thêm cấu hình mới (Xóa id cũ nếu có để tránh xung đột hoặc giữ nguyên tùy logic)
+//         await db.config.add(importedData.config);
+        
+//         // Thêm danh sách ứng viên mới
+//         await db.candidates.bulkAdd(importedData.candidates);
+//       });
+
+//       alert("Nhập cấu hình thành công!");
+//       e.target.value = ""; // Reset input file
+//     } catch (error) {
+//       console.error(error);
+//       alert("Lỗi: File không hợp lệ hoặc xảy ra lỗi trong quá trình nhập!");
+//     }
+//   };
+//   reader.readAsText(file);
+// };
+
+// Hàm Export
 const exportConfig = async () => {
   try {
     const configData = await db.config.toCollection().first();
     const candidatesData = await db.candidates.toArray();
     
+    // Giả sử configData của bạn có trường type (Quốc hội | Tỉnh | Xã)
+    // Nếu chưa có, bạn có thể mặc định hoặc lấy từ một state/const nào đó
     const data = {
+      fileSignature: "ELECTION_SYSTEM_CONFIG", // Chữ ký nhận diện file của riêng bạn
+      type: configData?.type || 'Quốc hội', 
+      slug: configData?.slug || 'quoc-hoi',
+      version: "1.0",
       config: configData,
       candidates: candidatesData,
-      version: "1.0",
-      exportedAt: new Date().toISOString()
     };
 
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `config-bau-cu-${new Date().getTime()}.json`;
+    
+    // Đặt tên file theo slug để dễ quản lý
+    link.download = `config-${data.slug}-${new Date().getTime()}.json`;
     link.click();
     URL.revokeObjectURL(url);
   } catch (error) {
     alert("Lỗi khi xuất dữ liệu!");
   }
 };
-
-// Hàm Import: Ghi đè dữ liệu vào IndexDB
 const importConfig = async (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -153,29 +220,50 @@ const importConfig = async (e) => {
     try {
       const importedData = JSON.parse(event.target.result);
 
-      // 1. Validation cơ bản
-      if (!importedData.config || !Array.isArray(importedData.candidates)) {
-        throw new Error("Dữ liệu không đúng định dạng");
+      // 1. Kiểm tra chữ ký file để tránh import file linh tinh
+      if (importedData.fileSignature !== "ELECTION_SYSTEM_CONFIG") {
+        alert("Lỗi: File không đúng định dạng cấu hình bầu cử!");
+        return;
       }
 
-      // 2. Sử dụng Dexie Transaction để đảm bảo an toàn dữ liệu
+      // 2. Kiểm tra tính hợp lệ của loại (Type) và Slug
+      const validTypes = ['Quốc hội', 'Tỉnh', 'Xã'];
+      const validSlugs = ['quoc-hoi', 'tinh', 'xa'];
+
+      if (!validTypes.includes(importedData.type) || !validSlugs.includes(importedData.slug)) {
+        alert(`Lỗi: Loại bầu cử "${importedData.type}" không hợp lệ!`);
+        return;
+      }
+
+      // 3. Hiển thị xác nhận rõ ràng cho người dùng
+      const confirmMsg = `Hệ thống phát hiện cấu hình cấp: [${importedData.type.toUpperCase()}]\n` +
+                         `Slug nhận diện: ${importedData.slug}\n\n` +
+                         `Bạn có chắc chắn muốn ghi đè toàn bộ dữ liệu hiện tại không?`;
+      
+      if (!confirm(confirmMsg)) {
+        e.target.value = "";
+        return;
+      }
+
+      // 4. Ghi dữ liệu vào Dexie DB
       await db.transaction('rw', db.config, db.candidates, async () => {
-        // Xóa dữ liệu cũ
         await db.config.clear();
         await db.candidates.clear();
 
-        // Thêm cấu hình mới (Xóa id cũ nếu có để tránh xung đột hoặc giữ nguyên tùy logic)
-        await db.config.add(importedData.config);
+        // Loại bỏ ID cũ để tránh conflict Primary Key
+        const { id: cId, ...configToSave } = importedData.config;
+        await db.config.add(configToSave);
         
-        // Thêm danh sách ứng viên mới
-        await db.candidates.bulkAdd(importedData.candidates);
+        const candidatesToSave = importedData.candidates.map(({ id, ...rest }) => rest);
+        await db.candidates.bulkAdd(candidatesToSave);
       });
 
-      alert("Nhập cấu hình thành công!");
-      e.target.value = ""; // Reset input file
+      alert(`Nhập thành công cấu hình bầu cử cấp ${importedData.type}!`);
     } catch (error) {
       console.error(error);
-      alert("Lỗi: File không hợp lệ hoặc xảy ra lỗi trong quá trình nhập!");
+      alert("Lỗi: Cấu trúc file JSON bị hỏng hoặc không đúng mẫu!");
+    } finally {
+      e.target.value = ""; 
     }
   };
   reader.readAsText(file);
