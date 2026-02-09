@@ -455,13 +455,9 @@ const REPORT_TEMPLATES_XA = [
             <Settings className="text-blue-600 w-6 h-6" /> {defaultElectionType}
           </h1>
           <div className="flex items-center gap-2 mt-1">
-            <Link
-              prefetch={false}
-              href="/train/"
-              className="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors font-medium"
-            >
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-            </Link>
+            
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+            
 
             <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest bg-zinc-100 px-2 py-0.5 rounded">
               Hệ thống đang hoạt động
