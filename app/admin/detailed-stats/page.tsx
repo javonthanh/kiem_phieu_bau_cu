@@ -23,7 +23,10 @@ export default function DetailedStatsPage() {
       voters: (config.actualVoters || 0) <= (config.totalVoters || 0) && (config.actualVoters > 0),
       votesFlow: (config.receivedVotes || 0) <= (config.issuedVotes || 0) && (config.receivedVotes > 0),
       logic: (config.validVotes || 0) + (config.invalidVotes || 0) === (config.receivedVotes || 0),
-      dbMatch: (config.validVotes || 0) === totalValidVotesCount
+      dbMatch: (config.validVotes || 0) === totalValidVotesCount,
+      dbMatchCheck: totalValidVotesCount - config.validVotes === 0,
+      balanceCheck: config.validVotes === config.receivedVotes,
+      voteFlowCheck: config.issuedVotes === config.receivedVotes
     };
     
     // 1. Khởi tạo ma trận động (Giữ nguyên)
@@ -148,7 +151,7 @@ export default function DetailedStatsPage() {
   </div>
 
   {/* Khớp Database */}
-  <div className={`p-4 rounded-2xl border shadow-sm transition-all ${reportData.integrity.dbMatchCheck ? 'bg-white' : 'bg-red-50 border-red-200'}`}>
+  <div className={`p-4 rounded-2xl border shadow-sm transition-all ${reportData.integrity.dbMatchCheck ? 'bg-green-100' : 'bg-red-50 border-red-200'}`}>
     <div className="flex justify-between items-start mb-2">
       <Calculator className={reportData.integrity.dbMatchCheck ? "text-zinc-400" : "text-red-500"} size={20} />
       <div className="flex flex-col items-end">
@@ -160,7 +163,7 @@ export default function DetailedStatsPage() {
     </div>
     <p className="text-[10px] font-black text-zinc-400 uppercase">Đã kiểm / Phiếu hợp lệ</p>
     <p className={`text-xl font-black ${reportData.integrity.dbMatchCheck ? 'text-zinc-800' : 'text-red-600'}`}>{reportData.totalValidVotesCount} / {config.validVotes}</p>
-    <p className="text-[9px] text-zinc-500 font-medium mt-1">Phải khớp 100% để xuất file</p>
+    <p className="text-[9px] text-zinc-500 font-medium mt-1">{reportData.integrity.dbMatchCheck ? 'Số liệu kiểm phiếu khớp với số phiếu hợp lệ':'Có lỗi cần kiểm tra lại'} </p>
   </div>
 </div>
 

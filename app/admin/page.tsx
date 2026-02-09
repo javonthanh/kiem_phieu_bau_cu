@@ -117,6 +117,70 @@ const REPORT_TEMPLATES_XA = [
     witnessesOpening: "", // 2 Cử tri chứng kiến mở thùng phiếu
     witnessesCounting: "", // 2 Cử tri chứng kiến kiểm phiếu
   });
+
+// Hàm Export: Lấy dữ liệu trực tiếp từ DB và tải về
+const exportConfig = async () => {
+  try {
+    const configData = await db.config.toCollection().first();
+    const candidatesData = await db.candidates.toArray();
+    
+    const data = {
+      config: configData,
+      candidates: candidatesData,
+      version: "1.0",
+      exportedAt: new Date().toISOString()
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `config-bau-cu-${new Date().getTime()}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    alert("Lỗi khi xuất dữ liệu!");
+  }
+};
+
+// Hàm Import: Ghi đè dữ liệu vào IndexDB
+const importConfig = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = async (event) => {
+    try {
+      const importedData = JSON.parse(event.target.result);
+
+      // 1. Validation cơ bản
+      if (!importedData.config || !Array.isArray(importedData.candidates)) {
+        throw new Error("Dữ liệu không đúng định dạng");
+      }
+
+      // 2. Sử dụng Dexie Transaction để đảm bảo an toàn dữ liệu
+      await db.transaction('rw', db.config, db.candidates, async () => {
+        // Xóa dữ liệu cũ
+        await db.config.clear();
+        await db.candidates.clear();
+
+        // Thêm cấu hình mới (Xóa id cũ nếu có để tránh xung đột hoặc giữ nguyên tùy logic)
+        await db.config.add(importedData.config);
+        
+        // Thêm danh sách ứng viên mới
+        await db.candidates.bulkAdd(importedData.candidates);
+      });
+
+      alert("Nhập cấu hình thành công!");
+      e.target.value = ""; // Reset input file
+    } catch (error) {
+      console.error(error);
+      alert("Lỗi: File không hợp lệ hoặc xảy ra lỗi trong quá trình nhập!");
+    }
+  };
+  reader.readAsText(file);
+};
+
   const handleRestore = async () => {
     if (!window.electronAPI) {
       alert("Chức năng khôi phục chỉ khả dụng trong ứng dụng Electron.");
@@ -458,7 +522,6 @@ const REPORT_TEMPLATES_XA = [
             
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
             
-
             <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest bg-zinc-100 px-2 py-0.5 rounded">
               Hệ thống đang hoạt động
             </span>
@@ -491,6 +554,44 @@ const REPORT_TEMPLATES_XA = [
           className={`lg:col-span-12 bg-white p-6 rounded-3xl shadow-sm border border-zinc-200 flex flex-col transition-opacity ${isLocked ? "opacity-75" : ""}`}
         >
           <div className="flex flex-col lg:flex-row justify-between items-center gap-4 mb-6 pb-6 border-b">
+            {/* Thêm các Icon cần thiết: Download, Upload */}
+<div className="flex items-center gap-4">
+  <div className="bg-blue-50 p-2 rounded-xl text-blue-600">
+    <Users size={24} />
+  </div>
+  <div>
+    <h2 className="text-lg font-black text-zinc-800 uppercase leading-none">
+      Cài đặt ứng viên
+    </h2>
+    <div className="flex items-center gap-3 mt-1">
+      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+        Tiến độ: {candidates?.length}/{config?.candidateLimit || 0}
+      </p>
+      
+      {/* Nút Export/Import mới */}
+      <div className="flex items-center gap-2 border-l pl-3 ml-1">
+        <button 
+          onClick={exportConfig}
+          title="Xuất cấu hình"
+          className="text-zinc-400 hover:text-blue-600 transition-colors"
+        >
+          <Download size={14} />
+        </button>
+        
+        <label className="cursor-pointer text-zinc-400 hover:text-green-600 transition-colors" title="Nhập cấu hình">
+          <Upload size={14} />
+          <input 
+            type="file" 
+            accept=".json" 
+            className="hidden" 
+            onChange={importConfig}
+            disabled={isLocked}
+          />
+        </label>
+      </div>
+    </div>
+  </div>
+</div>
             <div className="flex items-center gap-4">
               <div className="bg-blue-50 p-2 rounded-xl text-blue-600">
                 <Users size={24} />
