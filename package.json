@@ -9,6 +9,13 @@
       {
         "from": "preload.js",
         "to": "preload.js"
+      },
+      {
+        "filter": [
+          "**/*"
+        ],
+        "from": "public/templates",
+        "to": "templates"
       }
     ],
     "files": [
@@ -25,7 +32,7 @@
     },
     "productName": "KIEM_PHIEU_BAU_CU",
     "win": {
-      "icon": "icon.ico",
+      "icon": "assets/icon.ico",
       "target": "portable"
     }
   },

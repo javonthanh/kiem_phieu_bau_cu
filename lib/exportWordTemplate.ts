@@ -6,17 +6,38 @@ import PizZip from "pizzip";
 import Docxtemplater from "docxtemplater";
 
 // --- HÀM TRỢ GIÚP ---
-const loadFile = (url: string): Promise<ArrayBuffer> => {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("GET", url, true);
-    xhr.responseType = "arraybuffer";
-    xhr.onload = () => {
-      if (xhr.status === 200) resolve(xhr.response);
-      else reject(new Error(`Không thể tải file mẫu tại: ${url}`));
-    };
-    xhr.send();
-  });
+// const loadFile = (url: string): Promise<ArrayBuffer> => {
+//   return new Promise((resolve, reject) => {
+//     const xhr = new XMLHttpRequest();
+//     xhr.open("GET", url, true);
+//     xhr.responseType = "arraybuffer";
+//     xhr.onload = () => {
+//       if (xhr.status === 200) resolve(xhr.response);
+//       else reject(new Error(`Không thể tải file mẫu tại: ${url}`));
+//     };
+//     xhr.send();
+//   });
+// };
+
+const loadFile = async (url: string): Promise<ArrayBuffer> => {
+  try {
+    // Luôn đảm bảo có dấu / ở đầu để fetch từ gốc (public)
+    const fetchUrl = url.startsWith("/") ? url : `/${url}`;
+    alert(fetchUrl);
+    console.log("Đang tải từ Root:", fetchUrl);
+
+    const response = await fetch(fetchUrl);
+
+    if (!response.ok) {
+      throw new Error(
+        `Không tìm thấy file mẫu tại ${fetchUrl}. Hãy đảm bảo file nằm trong public/templates/`
+      );
+    }
+    return await response.arrayBuffer();
+  } catch (err) {
+    console.error("Lỗi loadFile:", err);
+    throw err;
+  }
 };
 
 /**
@@ -202,7 +223,7 @@ export const exportReportWordKPQH = () =>
 
 // 2. Xác định kết quả Quốc hội (Ví dụ mẫu 19)
 export const exportReportWordXDKQQH = () =>
-  generateVotingReport("/templates/mau19-xd-kq-qh.docx", "Xac_Dinh_Ket_Qua_QH");
+  generateVotingReport("templates/mau19-xd-kq-qh.docx", "Xac_Dinh_Ket_Qua_QH");
 
 // 3. Kết quả bầu cử cấp Tỉnh
 export const exportReportWordKPTinh = () =>

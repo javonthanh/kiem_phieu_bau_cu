@@ -29,6 +29,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { exportVotesToExcel } from "@/lib/exportExcel";
+import AppIcon from "@/components/AppIcon";
 
 declare global {
   interface Window {
@@ -604,16 +605,9 @@ const importConfig = async (e) => {
       <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-zinc-200">
         <div className="flex flex-col">
           <h1 className="text-xl font-black text-zinc-900 flex items-center gap-2 uppercase tracking-tighter">
-            <Settings className="text-blue-600 w-6 h-6" /> {defaultElectionType}
+            <AppIcon size={30} />
+             {defaultElectionType}
           </h1>
-          <div className="flex items-center gap-2 mt-1">
-            
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-            
-            <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest bg-zinc-100 px-2 py-0.5 rounded">
-              Hệ thống đang hoạt động
-            </span>
-          </div>
         </div>
         <div className="flex items-center gap-4">
           <Link

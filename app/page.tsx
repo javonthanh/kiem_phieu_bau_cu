@@ -13,6 +13,7 @@ import {
   Phone,
 } from "lucide-react";
 import { Vote } from "lucide-react";
+import AppIcon from "@/components/AppIcon";
 
 export default function Home() {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
@@ -57,9 +58,9 @@ export default function Home() {
       <main className="w-full max-w-4xl text-center">
         {/* Header Section - Đã tinh chỉnh nội dung gọn hơn */}
         <div className="mb-8 flex flex-col items-center">
-          <div className="mb-6 p-4 bg-zinc-900 dark:bg-zinc-50 rounded-3xl text-white dark:text-zinc-900 shadow-xl">
-            <Vote size={40} />
-          </div>
+          {/* <div className="mb-6 p-2 bg-zinc-900 dark:bg-zinc-50 rounded-3xl text-white dark:text-zinc-900 shadow-xl"> */}
+            <AppIcon size={80} />
+          {/* </div> */}
           <h1 className="text-4xl font-black tracking-tighter text-zinc-900 dark:text-zinc-50 sm:text-6xl uppercase italic">
             Hệ thống kiểm phiếu
           </h1>
