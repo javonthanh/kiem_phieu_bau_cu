@@ -181,7 +181,7 @@ export default function TallyPage() {
         }
       }
       if (e.key.toUpperCase() === "L") {
-        if(!isTrainMode){
+        if(isTrainMode){
           commitSave()
         }
       }
@@ -357,98 +357,98 @@ const selectTrainFolder = async () => {
         canvas.height = Math.round(sh);
         const ctx = canvas.getContext("2d");
 
-        // if (ctx) {
-        //   ctx.imageSmoothingEnabled = false;
-        //   ctx.filter = "grayscale(100%) contrast(140%)";
-        //   ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
-        //   ctx.filter = "none";
-        //   // Hiển thị Debug chính
-        // let debugCanvas = document.getElementById(
-        //     `debug-canvas-${can.id}`,
-        //   ) as HTMLCanvasElement;
-        //   if (!debugCanvas) {
-        //     debugCanvas = document.createElement("canvas");
-        //     debugCanvas.id = `debug-canvas-${can.id}`;
-        //     debugCanvas.style.border = "2px solid lime";
-        //     debugCanvas.style.width = "250px";
-        //     document
-        //       .getElementById("ai-debug-container")
-        //       ?.appendChild(debugCanvas);
-        //   }
-        //   debugCanvas.width = sw;
-        //   debugCanvas.height = sh;
-        //   const dCtx = debugCanvas.getContext("2d");
-
-        //   dCtx?.drawImage(canvas, 0, 0);
-        //   jobs.push({ canvas: canvas, candidateId: can.id! });
-        // }
-        
-        if (ctx){
-          // ====== Debug + Checkbox Wrapper ======
-          let wrapper = document.getElementById(
-            `debug-wrapper-${can.id}`
-          ) as HTMLDivElement;
-
-          if (!wrapper) {
-            wrapper = document.createElement("div");
-            wrapper.id = `debug-wrapper-${can.id}`;
-            wrapper.style.display = "flex";
-            wrapper.style.alignItems = "center";
-            wrapper.style.gap = "6px";
-            wrapper.style.marginBottom = "4px";
-
-            // Checkbox
-            const checkbox = document.createElement("input");
-            checkbox.type = "checkbox";
-            checkbox.checked = true;
-            checkbox.id = `debug-check-${can.id}`;
-
-            checkbox.onchange = () => {
-              if (!checkbox.checked) {
-                // ❌ bỏ khỏi job
-                preparedJobsRef.current = preparedJobsRef.current.filter(
-                  (j) => j.candidateId !== can.id
-                );
-                setPreparedJobs([...preparedJobsRef.current]);
-              } else {
-                // ✅ thêm lại job
-                preparedJobsRef.current.push({
-                  canvas: canvas,
-                  candidateId: can.id!,
-                });
-                setPreparedJobs([...preparedJobsRef.current]);
-              }
-            };
-
-            wrapper.appendChild(checkbox);
-
-            // Debug canvas
-            const debugCanvas = document.createElement("canvas");
+        if (ctx) {
+          ctx.imageSmoothingEnabled = false;
+          ctx.filter = "grayscale(100%) contrast(140%)";
+          ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
+          ctx.filter = "none";
+          // Hiển thị Debug chính
+        let debugCanvas = document.getElementById(
+            `debug-canvas-${can.id}`,
+          ) as HTMLCanvasElement;
+          if (!debugCanvas) {
+            debugCanvas = document.createElement("canvas");
             debugCanvas.id = `debug-canvas-${can.id}`;
             debugCanvas.style.border = "2px solid lime";
-            debugCanvas.style.width = "220px";
-
-            wrapper.appendChild(debugCanvas);
-
+            debugCanvas.style.width = "250px";
             document
               .getElementById("ai-debug-container")
-              ?.appendChild(wrapper);
+              ?.appendChild(debugCanvas);
           }
-
-          // Cập nhật canvas
-          const debugCanvas = document.getElementById(
-            `debug-canvas-${can.id}`
-          ) as HTMLCanvasElement;
-
           debugCanvas.width = sw;
           debugCanvas.height = sh;
           const dCtx = debugCanvas.getContext("2d");
+
           dCtx?.drawImage(canvas, 0, 0);
-
-          // vẫn push job như cũ
           jobs.push({ canvas: canvas, candidateId: can.id! });
-
         }
+        
+        // if (ctx){
+        //   // ====== Debug + Checkbox Wrapper ======
+        //   let wrapper = document.getElementById(
+        //     `debug-wrapper-${can.id}`
+        //   ) as HTMLDivElement;
+
+        //   if (!wrapper) {
+        //     wrapper = document.createElement("div");
+        //     wrapper.id = `debug-wrapper-${can.id}`;
+        //     wrapper.style.display = "flex";
+        //     wrapper.style.alignItems = "center";
+        //     wrapper.style.gap = "6px";
+        //     wrapper.style.marginBottom = "4px";
+
+        //     // Checkbox
+        //     const checkbox = document.createElement("input");
+        //     checkbox.type = "checkbox";
+        //     checkbox.checked = true;
+        //     checkbox.id = `debug-check-${can.id}`;
+
+        //     checkbox.onchange = () => {
+        //       if (!checkbox.checked) {
+        //         // ❌ bỏ khỏi job
+        //         preparedJobsRef.current = preparedJobsRef.current.filter(
+        //           (j) => j.candidateId !== can.id
+        //         );
+        //         setPreparedJobs([...preparedJobsRef.current]);
+        //       } else {
+        //         // ✅ thêm lại job
+        //         preparedJobsRef.current.push({
+        //           canvas: canvas,
+        //           candidateId: can.id!,
+        //         });
+        //         setPreparedJobs([...preparedJobsRef.current]);
+        //       }
+        //     };
+
+        //     wrapper.appendChild(checkbox);
+
+        //     // Debug canvas
+        //     const debugCanvas = document.createElement("canvas");
+        //     debugCanvas.id = `debug-canvas-${can.id}`;
+        //     debugCanvas.style.border = "2px solid lime";
+        //     debugCanvas.style.width = "220px";
+
+        //     wrapper.appendChild(debugCanvas);
+
+        //     document
+        //       .getElementById("ai-debug-container")
+        //       ?.appendChild(wrapper);
+        //   }
+
+        //   // Cập nhật canvas
+        //   const debugCanvas = document.getElementById(
+        //     `debug-canvas-${can.id}`
+        //   ) as HTMLCanvasElement;
+
+        //   debugCanvas.width = sw;
+        //   debugCanvas.height = sh;
+        //   const dCtx = debugCanvas.getContext("2d");
+        //   dCtx?.drawImage(canvas, 0, 0);
+
+        //   // vẫn push job như cũ
+        //   jobs.push({ canvas: canvas, candidateId: can.id! });
+
+        // }
       }
       preparedJobsRef.current = jobs;
        setPreparedJobs(jobs);
