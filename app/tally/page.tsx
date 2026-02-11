@@ -268,9 +268,22 @@ export default function TallyPage() {
     audio.play();
   };
 
-  const selectTrainFolder = async () => {
-    trainDirHandleRef.current = await window.showDirectoryPicker();
-  };
+const selectTrainFolder = async () => {
+  try {
+    const dirHandle = await window.showDirectoryPicker();
+    trainDirHandleRef.current = dirHandle;
+  } catch (err: any) {
+    if (err.name === "AbortError") {
+      // Người dùng nhấn Cancel → không phải lỗi
+      console.log("Đã hủy chọn thư mục");
+      return;
+    }
+
+    console.error(err);
+    alert("❌ Không thể chọn thư mục");
+  }
+};
+
   const canvasToBlob = (canvas: HTMLCanvasElement): Promise<Blob> => {
     return new Promise((resolve, reject) => {
       canvas.toBlob((blob) => {
@@ -296,7 +309,7 @@ export default function TallyPage() {
     await writable.close();
   };
 
-   const runTrain = async () => {
+  const runTrain = async () => {
     if (isBusy) return; // ❗ không cho chạy chồng
     if (!model || !videoRef.current || isEditMode || !isScanning) return;
     setIsBusy(true);
@@ -328,7 +341,7 @@ export default function TallyPage() {
       }
 
       const scale = videoWidth / actualWidth;
-
+      document.getElementById("ai-debug-container")!.innerHTML = "";
       for (const can of candidates || []) {
         const node = nodeRefs.current.get(can.id!)?.current;
         if (!node) continue;
@@ -344,32 +357,98 @@ export default function TallyPage() {
         canvas.height = Math.round(sh);
         const ctx = canvas.getContext("2d");
 
-        if (ctx) {
-          ctx.imageSmoothingEnabled = false;
-          ctx.filter = "grayscale(100%) contrast(140%)";
-          ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
-          ctx.filter = "none";
-          // Hiển thị Debug chính
-        let debugCanvas = document.getElementById(
-            `debug-canvas-${can.id}`,
-          ) as HTMLCanvasElement;
-          if (!debugCanvas) {
-            debugCanvas = document.createElement("canvas");
+        // if (ctx) {
+        //   ctx.imageSmoothingEnabled = false;
+        //   ctx.filter = "grayscale(100%) contrast(140%)";
+        //   ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
+        //   ctx.filter = "none";
+        //   // Hiển thị Debug chính
+        // let debugCanvas = document.getElementById(
+        //     `debug-canvas-${can.id}`,
+        //   ) as HTMLCanvasElement;
+        //   if (!debugCanvas) {
+        //     debugCanvas = document.createElement("canvas");
+        //     debugCanvas.id = `debug-canvas-${can.id}`;
+        //     debugCanvas.style.border = "2px solid lime";
+        //     debugCanvas.style.width = "250px";
+        //     document
+        //       .getElementById("ai-debug-container")
+        //       ?.appendChild(debugCanvas);
+        //   }
+        //   debugCanvas.width = sw;
+        //   debugCanvas.height = sh;
+        //   const dCtx = debugCanvas.getContext("2d");
+
+        //   dCtx?.drawImage(canvas, 0, 0);
+        //   jobs.push({ canvas: canvas, candidateId: can.id! });
+        // }
+        
+        if (ctx){
+          // ====== Debug + Checkbox Wrapper ======
+          let wrapper = document.getElementById(
+            `debug-wrapper-${can.id}`
+          ) as HTMLDivElement;
+
+          if (!wrapper) {
+            wrapper = document.createElement("div");
+            wrapper.id = `debug-wrapper-${can.id}`;
+            wrapper.style.display = "flex";
+            wrapper.style.alignItems = "center";
+            wrapper.style.gap = "6px";
+            wrapper.style.marginBottom = "4px";
+
+            // Checkbox
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.checked = true;
+            checkbox.id = `debug-check-${can.id}`;
+
+            checkbox.onchange = () => {
+              if (!checkbox.checked) {
+                // ❌ bỏ khỏi job
+                preparedJobsRef.current = preparedJobsRef.current.filter(
+                  (j) => j.candidateId !== can.id
+                );
+                setPreparedJobs([...preparedJobsRef.current]);
+              } else {
+                // ✅ thêm lại job
+                preparedJobsRef.current.push({
+                  canvas: canvas,
+                  candidateId: can.id!,
+                });
+                setPreparedJobs([...preparedJobsRef.current]);
+              }
+            };
+
+            wrapper.appendChild(checkbox);
+
+            // Debug canvas
+            const debugCanvas = document.createElement("canvas");
             debugCanvas.id = `debug-canvas-${can.id}`;
             debugCanvas.style.border = "2px solid lime";
-            debugCanvas.style.width = "250px";
+            debugCanvas.style.width = "220px";
+
+            wrapper.appendChild(debugCanvas);
+
             document
               .getElementById("ai-debug-container")
-              ?.appendChild(debugCanvas);
+              ?.appendChild(wrapper);
           }
+
+          // Cập nhật canvas
+          const debugCanvas = document.getElementById(
+            `debug-canvas-${can.id}`
+          ) as HTMLCanvasElement;
+
           debugCanvas.width = sw;
           debugCanvas.height = sh;
           const dCtx = debugCanvas.getContext("2d");
-
           dCtx?.drawImage(canvas, 0, 0);
+
+          // vẫn push job như cũ
           jobs.push({ canvas: canvas, candidateId: can.id! });
+
         }
-        
       }
       preparedJobsRef.current = jobs;
        setPreparedJobs(jobs);
@@ -494,6 +573,7 @@ const commitSave = async () => {
 
     const newStates: Record<number, boolean> = { ...tempStates };
     let hasChanged = false;
+    document.getElementById("ai-debug-container")!.innerHTML = "";
     // phiên ban 1.
     tf.tidy(() => {
       for (const can of candidates || []) {
@@ -1763,18 +1843,21 @@ const commitSave = async () => {
                 {/* Hàng 1: Nạp Model & Hiển thị độ nhạy */}
                 <div className="flex justify-between items-end">
                   <button onClick={() => setIsTrainMode(!isTrainMode)}>
-                    <span className="text-[10px] text-zinc-500 font-bold uppercase flex items-center gap-1">
+                    <span className="text-[10px] p-2 text-zinc-500 font-bold uppercase flex items-center gap-1">
                       {isTrainMode
-                        ? "🔴 Tắt chế độ train"
-                        : "🟢 Bật chế độ train"}
+                        ? "🔴 Train"
+                        : "🟢 Check"}
                     </span>
                   </button>
-
-                  <button onClick={selectTrainFolder}>
-                    📁 Chọn thư mục train
-                  </button>
+                  {isTrainMode && <button onClick={selectTrainFolder}>
+                    <span className="text-[10px] p-2 text-zinc-500 font-bold uppercase flex items-center gap-1">
+                    📁 Chọn thư mục lưu hình ảnh
+                    </span>
+                  </button>}
+                  
                 </div>
-                <div className="flex justify-between items-end">
+                {!isTrainMode && (<>
+                <div  className="flex justify-between items-end">
                   <div className="flex flex-col gap-1.5">
                     <span className="text-[10px] text-zinc-500 font-bold uppercase flex items-center gap-1">
                       <Database size={10} /> Model Engine
@@ -1812,8 +1895,6 @@ const commitSave = async () => {
                     </span>
                   </div>
                 </div>
-
-                {/* Hàng 2: Thanh trượt */}
                 <div className="flex flex-col gap-2">
                   <input
                     type="range"
@@ -1835,7 +1916,10 @@ const commitSave = async () => {
                     </span>
                   </div>
                 </div>
+                </>
+                )}
               </div>
+                  
             )}
 
             {/* Body */}

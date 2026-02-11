@@ -228,7 +228,7 @@ const importConfig = async (e) => {
       }
 
       // 2. Kiểm tra tính hợp lệ của loại (Type) và Slug
-      const validTypes = ['Quốc hội', 'Tỉnh', 'Xã'];
+      const validTypes = ['Đại biểu Quốc hội', 'HĐND Tỉnh/Thành phố', 'HĐND Xã/Phường'];
       const validSlugs = ['quoc-hoi', 'tinh', 'xa'];
 
       if (!validTypes.includes(importedData.type) || !validSlugs.includes(importedData.slug)) {

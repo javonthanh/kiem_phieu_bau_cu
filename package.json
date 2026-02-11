@@ -16,6 +16,13 @@
         ],
         "from": "public/templates",
         "to": "templates"
+      },
+      {
+        "filter": [
+          "**/*"
+        ],
+        "from": "public/model",
+        "to": "model"
       }
     ],
     "files": [
