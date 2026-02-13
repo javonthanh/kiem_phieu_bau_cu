@@ -740,15 +740,19 @@ export default function TallyPage() {
 
       const key = e.key.toUpperCase();
 
-      if (key === "P") {
+     if (!e.shiftKey && key === "P") {
         runInference();
       }
 
-      if (key === "T") {
+      if (e.shiftKey && key === "P") {
         runTrain();
       }
 
-      if (key === "L") {
+      if (e.shiftKey && key === "T") {
+        setIsTrainMode((prev) => !prev);
+      }
+
+      if (e.shiftKey && key === "L") {
         commitSave();
       }
     },
@@ -1836,11 +1840,11 @@ export default function TallyPage() {
                   <Settings size={14} />
                 </button>
 
-                <button onClick={() => setIsTrainMode(!isTrainMode)}>
+                {/* <button onClick={() => setIsTrainMode(!isTrainMode)}> */}
                   <span className="text-[15px] p-2 text-zinc-500 font-bold uppercase flex items-center gap-1">
                     {isTrainMode ? "🧠" : "🤖"}
                   </span>
-                </button>
+                {/* </button> */}
 
                 <button
                   onClick={() => {
