@@ -1,6 +1,13 @@
 "use client";
 
-import React, { useRef, useEffect, useState, createRef } from "react";
+import React, {
+  useRef,
+  useEffect,
+  useState,
+  createRef,
+  use,
+  useCallback,
+} from "react";
 import { db, encrypt, decrypt } from "@/lib/db";
 import { useLiveQuery } from "dexie-react-hooks";
 import Draggable from "react-draggable";
@@ -65,6 +72,7 @@ export default function TallyPage() {
   const [showSettings, setShowSettings] = React.useState(false);
   const [showCurrentVotePanel, setShowCurrentVotePanel] = useState(true);
   const [isTrainMode, setIsTrainMode] = useState(false);
+  const [isTraining, setIsTraining] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
 
   const nodeRefs = useRef<Map<number, React.RefObject<HTMLDivElement>>>(
@@ -166,32 +174,6 @@ export default function TallyPage() {
     return extendedKeys[extendedIndex] || ""; // A, S, D...
   };
 
-  const toggleScanning = () => {
-    setIsScanning((prev) => !prev);
-  };
-
-  // Lắng nghe phím P
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key.toUpperCase() === "P") {
-        if(isTrainMode){
-          runTrain()
-        }else{
-          toggleScanning();
-        }
-      }
-      if (e.key.toUpperCase() === "L") {
-        if(isTrainMode){
-          commitSave()
-        }
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
-
-
   useEffect(() => {
     const loadModel = async () => {
       try {
@@ -268,21 +250,21 @@ export default function TallyPage() {
     audio.play();
   };
 
-const selectTrainFolder = async () => {
-  try {
-    const dirHandle = await window.showDirectoryPicker();
-    trainDirHandleRef.current = dirHandle;
-  } catch (err: any) {
-    if (err.name === "AbortError") {
-      // Người dùng nhấn Cancel → không phải lỗi
-      console.log("Đã hủy chọn thư mục");
-      return;
-    }
+  const selectTrainFolder = async () => {
+    try {
+      const dirHandle = await window.showDirectoryPicker();
+      trainDirHandleRef.current = dirHandle;
+    } catch (err: any) {
+      if (err.name === "AbortError") {
+        // Người dùng nhấn Cancel → không phải lỗi
+        console.log("Đã hủy chọn thư mục");
+        return;
+      }
 
-    console.error(err);
-    alert("❌ Không thể chọn thư mục");
-  }
-};
+      console.error(err);
+      alert("❌ Không thể chọn thư mục");
+    }
+  };
 
   const canvasToBlob = (canvas: HTMLCanvasElement): Promise<Blob> => {
     return new Promise((resolve, reject) => {
@@ -309,13 +291,19 @@ const selectTrainFolder = async () => {
     await writable.close();
   };
 
-  const runTrain = async () => {
+  const runTrain = useCallback(async () => {
+    if (!isTrainMode) {
+      setError("Chưa bật chế độ TRAIN");
+      return;
+    }
+
     if (isBusy) return; // ❗ không cho chạy chồng
-    if (!model || !videoRef.current || isEditMode || !isScanning) return;
+    if (!model || !videoRef.current || isEditMode) return;
+
     setIsBusy(true);
     setPreparedJobs([]);
     const jobs: { canvas: HTMLCanvasElement; candidateId: number }[] = [];
-    
+
     try {
       const video = videoRef.current;
       const videoWidth = video.videoWidth;
@@ -357,193 +345,201 @@ const selectTrainFolder = async () => {
         canvas.height = Math.round(sh);
         const ctx = canvas.getContext("2d");
 
+        // if (ctx) {
+        //   ctx.imageSmoothingEnabled = false;
+        //   ctx.filter = "grayscale(100%) contrast(140%)";
+        //   ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
+        //   ctx.filter = "none";
+        //   // Hiển thị Debug chính
+        // let debugCanvas = document.getElementById(
+        //     `debug-canvas-${can.id}`,
+        //   ) as HTMLCanvasElement;
+        //   if (!debugCanvas) {
+        //     debugCanvas = document.createElement("canvas");
+        //     debugCanvas.id = `debug-canvas-${can.id}`;
+        //     debugCanvas.style.border = "2px solid lime";
+        //     debugCanvas.style.width = "250px";
+        //     document
+        //       .getElementById("ai-debug-container")
+        //       ?.appendChild(debugCanvas);
+        //   }
+        //   debugCanvas.width = sw;
+        //   debugCanvas.height = sh;
+        //   const dCtx = debugCanvas.getContext("2d");
+
+        //   dCtx?.drawImage(canvas, 0, 0);
+        //   jobs.push({ canvas: canvas, candidateId: can.id! });
+        // }
+
         if (ctx) {
+          // ====== Debug + Checkbox Wrapper ======
           ctx.imageSmoothingEnabled = false;
           ctx.filter = "grayscale(100%) contrast(140%)";
           ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
           ctx.filter = "none";
-          // Hiển thị Debug chính
-        let debugCanvas = document.getElementById(
-            `debug-canvas-${can.id}`,
-          ) as HTMLCanvasElement;
-          if (!debugCanvas) {
-            debugCanvas = document.createElement("canvas");
+
+          let wrapper = document.getElementById(
+            `debug-wrapper-${can.id}`,
+          ) as HTMLDivElement;
+
+          if (!wrapper) {
+            wrapper = document.createElement("div");
+            wrapper.id = `debug-wrapper-${can.id}`;
+            wrapper.style.display = "flex";
+            wrapper.style.alignItems = "center";
+            wrapper.style.gap = "6px";
+            wrapper.style.marginBottom = "4px";
+
+            // Checkbox
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.checked = true;
+            checkbox.id = `debug-check-${can.id}`;
+
+            checkbox.onchange = () => {
+              if (!checkbox.checked) {
+                // ❌ bỏ khỏi job
+                preparedJobsRef.current = preparedJobsRef.current.filter(
+                  (j) => j.candidateId !== can.id,
+                );
+                setPreparedJobs([...preparedJobsRef.current]);
+              } else {
+                // ✅ thêm lại job
+                preparedJobsRef.current.push({
+                  canvas: canvas,
+                  candidateId: can.id!,
+                });
+                setPreparedJobs([...preparedJobsRef.current]);
+              }
+            };
+
+            wrapper.appendChild(checkbox);
+
+            // Debug canvas
+            const debugCanvas = document.createElement("canvas");
             debugCanvas.id = `debug-canvas-${can.id}`;
             debugCanvas.style.border = "2px solid lime";
-            debugCanvas.style.width = "250px";
-            document
-              .getElementById("ai-debug-container")
-              ?.appendChild(debugCanvas);
+            debugCanvas.style.width = "220px";
+
+            wrapper.appendChild(debugCanvas);
+
+            document.getElementById("ai-debug-container")?.appendChild(wrapper);
           }
+
+          // Cập nhật canvas
+          const debugCanvas = document.getElementById(
+            `debug-canvas-${can.id}`,
+          ) as HTMLCanvasElement;
+
           debugCanvas.width = sw;
           debugCanvas.height = sh;
           const dCtx = debugCanvas.getContext("2d");
-
           dCtx?.drawImage(canvas, 0, 0);
+
+          // vẫn push job như cũ
           jobs.push({ canvas: canvas, candidateId: can.id! });
         }
-        
-        // if (ctx){
-        //   // ====== Debug + Checkbox Wrapper ======
-        //   let wrapper = document.getElementById(
-        //     `debug-wrapper-${can.id}`
-        //   ) as HTMLDivElement;
-
-        //   if (!wrapper) {
-        //     wrapper = document.createElement("div");
-        //     wrapper.id = `debug-wrapper-${can.id}`;
-        //     wrapper.style.display = "flex";
-        //     wrapper.style.alignItems = "center";
-        //     wrapper.style.gap = "6px";
-        //     wrapper.style.marginBottom = "4px";
-
-        //     // Checkbox
-        //     const checkbox = document.createElement("input");
-        //     checkbox.type = "checkbox";
-        //     checkbox.checked = true;
-        //     checkbox.id = `debug-check-${can.id}`;
-
-        //     checkbox.onchange = () => {
-        //       if (!checkbox.checked) {
-        //         // ❌ bỏ khỏi job
-        //         preparedJobsRef.current = preparedJobsRef.current.filter(
-        //           (j) => j.candidateId !== can.id
-        //         );
-        //         setPreparedJobs([...preparedJobsRef.current]);
-        //       } else {
-        //         // ✅ thêm lại job
-        //         preparedJobsRef.current.push({
-        //           canvas: canvas,
-        //           candidateId: can.id!,
-        //         });
-        //         setPreparedJobs([...preparedJobsRef.current]);
-        //       }
-        //     };
-
-        //     wrapper.appendChild(checkbox);
-
-        //     // Debug canvas
-        //     const debugCanvas = document.createElement("canvas");
-        //     debugCanvas.id = `debug-canvas-${can.id}`;
-        //     debugCanvas.style.border = "2px solid lime";
-        //     debugCanvas.style.width = "220px";
-
-        //     wrapper.appendChild(debugCanvas);
-
-        //     document
-        //       .getElementById("ai-debug-container")
-        //       ?.appendChild(wrapper);
-        //   }
-
-        //   // Cập nhật canvas
-        //   const debugCanvas = document.getElementById(
-        //     `debug-canvas-${can.id}`
-        //   ) as HTMLCanvasElement;
-
-        //   debugCanvas.width = sw;
-        //   debugCanvas.height = sh;
-        //   const dCtx = debugCanvas.getContext("2d");
-        //   dCtx?.drawImage(canvas, 0, 0);
-
-        //   // vẫn push job như cũ
-        //   jobs.push({ canvas: canvas, candidateId: can.id! });
-
-        // }
       }
       preparedJobsRef.current = jobs;
-       setPreparedJobs(jobs);
-       
+      setPreparedJobs(jobs);
     } catch (err) {
       console.error(err);
-      alert("❌ Có lỗi khi train");
+      setError("❌ Có lỗi khi train");
     } finally {
       setIsBusy(false); // 👉 CHỈ MỞ KHÓA KHI XONG HẾT
     }
-  };
-const commitSave = async () => {
-  if (!trainDirHandleRef.current) {
-    alert("Chưa chọn thư mục lưu");
-    return;
-  }
-
-  const currentJobs = preparedJobsRef.current;
-  if (currentJobs.length === 0) {
-    alert("Không có ảnh nào để lưu!");
-    return;
-  }
-
-  setIsBusy(true);
-  let savedCount = 0;
-  const TARGET_SIZE = 224; // Kích thước đầu ra cố định
-  const step = 25;         // Bước nhảy tịnh tiến (stride)
-
-  try {
-    for (const job of currentJobs) {
-      if (!job.canvas) continue;
-
-      const sourceCanvas = job.canvas;
-      const squareSize = sourceCanvas.height; // Lấy chiều cao làm chuẩn cho hình vuông cắt
-      let subIndex = 0;
-
-      // Vòng lặp tịnh tiến trục X: sx là tọa độ bắt đầu cắt trên ảnh gốc
-      for (let sx = 0; sx + squareSize <= sourceCanvas.width; sx += step) {
-        
-        const outCanvas = document.createElement("canvas");
-        outCanvas.width = TARGET_SIZE;
-        outCanvas.height = TARGET_SIZE;
-        const oCtx = outCanvas.getContext("2d");
-
-        if (!oCtx) continue;
-
-        // 1. Nền xám (tùy chọn theo code bạn gửi)
-        oCtx.fillStyle = "#f5f5f5";
-        oCtx.fillRect(0, 0, TARGET_SIZE, TARGET_SIZE);
-
-        // 2. Thiết lập filter nếu cần (Lưu ý: filter grayscale thường áp dụng khi vẽ)
-        oCtx.filter = "grayscale(100%) contrast(140%)";
-        oCtx.imageSmoothingEnabled = false;
-
-        // 3. Vẽ vùng cắt từ sourceCanvas (hình vuông) vào outCanvas (224x224)
-        oCtx.drawImage(
-          sourceCanvas,
-          sx, 0, squareSize, squareSize, // Vùng cắt trên ảnh gốc
-          0, 0, TARGET_SIZE, TARGET_SIZE // Vẽ vào canvas 224x224
-        );
-
-        oCtx.filter = "none"; // Reset filter cho lần vẽ sau (nếu có)
-
-        // 4. Chuyển thành Blob và lưu
-        const blob = await canvasToBlob(outCanvas);
-        if (blob) {
-          // Tạo tên file có index để không bị ghi đè: ví dụ candidate_101_001.png
-          const fileName = `${job.candidateId}_${subIndex.toString().padStart(3, "0")}.png`;
-          
-          // Lưu vào Folder (Cần đảm bảo hàm này nhận fileName hoặc tự xử lý bên trong)
-          await saveImageToFolder(blob, job.candidateId, fileName); 
-          
-          subIndex++;
-          savedCount++;
-        }
-      }
+  }, [isTrainMode, isBusy, model, isEditMode, candidates]);
+  
+  const commitSave = useCallback(async () => {
+    if (!trainDirHandleRef.current) {
+      setError("Chưa chọn thư mục lưu");
+      return;
     }
 
-    alert(`✅ Đã cắt và lưu thành công ${savedCount} ảnh mẫu!`);
-    
-    // Reset dữ liệu
-    preparedJobsRef.current = [];
-    setPreparedJobs([]);
+    const currentJobs = preparedJobsRef.current;
+    if (currentJobs.length === 0) {
+      setError("Không có ảnh nào để lưu!");
+      return;
+    }
 
-  } catch (e) {
-    console.error("Lỗi khi thực hiện commitSave:", e);
-    alert("❌ Có lỗi xảy ra khi lưu ảnh.");
-  } finally {
-    setIsBusy(false);
-  }
-};
+    setIsBusy(true);
+    let savedCount = 0;
+    const TARGET_SIZE = 224; // Kích thước đầu ra cố định
+    const step = 25; // Bước nhảy tịnh tiến (stride)
 
+    try {
+      for (const job of currentJobs) {
+        if (!job.canvas) continue;
 
-  const runInference = async () => {
-    if (!model || !videoRef.current || isEditMode || !isScanning) return;
+        const sourceCanvas = job.canvas;
+        const squareSize = sourceCanvas.height; // Lấy chiều cao làm chuẩn cho hình vuông cắt
+        let subIndex = 0;
+
+        // Vòng lặp tịnh tiến trục X: sx là tọa độ bắt đầu cắt trên ảnh gốc
+        for (let sx = 0; sx + squareSize <= sourceCanvas.width; sx += step) {
+          const outCanvas = document.createElement("canvas");
+          outCanvas.width = TARGET_SIZE;
+          outCanvas.height = TARGET_SIZE;
+          const oCtx = outCanvas.getContext("2d");
+
+          if (!oCtx) continue;
+
+          // 1. Nền xám (tùy chọn theo code bạn gửi)
+          oCtx.fillStyle = "#f5f5f5";
+          oCtx.fillRect(0, 0, TARGET_SIZE, TARGET_SIZE);
+
+          // 2. Thiết lập filter nếu cần (Lưu ý: filter grayscale thường áp dụng khi vẽ)
+          oCtx.filter = "grayscale(100%) contrast(140%)";
+          oCtx.imageSmoothingEnabled = false;
+
+          // 3. Vẽ vùng cắt từ sourceCanvas (hình vuông) vào outCanvas (224x224)
+          oCtx.drawImage(
+            sourceCanvas,
+            sx,
+            0,
+            squareSize,
+            squareSize, // Vùng cắt trên ảnh gốc
+            0,
+            0,
+            TARGET_SIZE,
+            TARGET_SIZE, // Vẽ vào canvas 224x224
+          );
+
+          oCtx.filter = "none"; // Reset filter cho lần vẽ sau (nếu có)
+
+          // 4. Chuyển thành Blob và lưu
+          const blob = await canvasToBlob(outCanvas);
+          if (blob) {
+            // Tạo tên file có index để không bị ghi đè: ví dụ candidate_101_001.png
+            const fileName = `${job.candidateId}_${subIndex.toString().padStart(3, "0")}.png`;
+
+            // Lưu vào Folder (Cần đảm bảo hàm này nhận fileName hoặc tự xử lý bên trong)
+            await saveImageToFolder(blob, job.candidateId, fileName);
+
+            subIndex++;
+            savedCount++;
+          }
+        }
+      }
+
+      alert(`✅ Đã cắt và lưu thành công ${savedCount} ảnh mẫu!`);
+
+      // Reset dữ liệu
+      preparedJobsRef.current = [];
+      setPreparedJobs([]);
+    } catch (e) {
+      console.error("Lỗi khi lưu ảnh:", e);
+      setError("Lỗi khi thực hiện lưu");
+    } finally {
+      setIsBusy(false);
+    }
+  }, []);
+  const runInference = useCallback(async () => {
+    if (isTrainMode) {
+      alert("Đang ở chế độ TRAIN, không thể quét!");
+      return;
+    }
+    if (!model || !videoRef.current || isEditMode) return;
 
     const video = videoRef.current;
     const videoWidth = video.videoWidth;
@@ -569,7 +565,6 @@ const commitSave = async () => {
     }
 
     const scale = videoWidth / actualWidth;
-
 
     const newStates: Record<number, boolean> = { ...tempStates };
     let hasChanged = false;
@@ -733,7 +728,55 @@ const commitSave = async () => {
 
       setTempStates(resetStates);
     }
-  };
+  }, [candidates, config, isEditMode, model, aiThreshold, tempStates, targetGroupSize, isTrainMode]);
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      )
+        return;
+
+      const key = e.key.toUpperCase();
+
+      if (key === "P") {
+        runInference();
+      }
+
+      if (key === "T") {
+        runTrain();
+      }
+
+      if (key === "L") {
+        commitSave();
+      }
+    },
+    [runInference, runTrain, commitSave],
+  );
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
+
+  // useEffect(() => {
+  //   const handleKeyDown = (e: KeyboardEvent) => {
+  //     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+  //     if (e.key.toUpperCase() === "P") {
+  //         runInference();
+  //     }
+  //     if (e.key.toUpperCase() === "T") {
+  //         runTrain();
+  //     }
+  //     if (e.key.toUpperCase() === "L") {
+  //         commitSave();
+  //     }
+  //   };
+
+  //   window.addEventListener("keydown", handleKeyDown);
+  //   return () => window.removeEventListener("keydown", handleKeyDown);
+  // }, []);
 
   const updateAiThreshold = async (value: number) => {
     setAiThreshold(value); // Cập nhật State để UI mượt mà
@@ -754,18 +797,11 @@ const commitSave = async () => {
   }, [config]);
 
   useEffect(() => {
-    if (config?.isCameraOn !== false && !isEditMode && model && isScanning) {
-      if(isTrainMode){
-        runTrain();
-      }else{
-        runInference();
-      }
-      setIsScanning(false);
-    } else {
-      setError("Chưa bật camera hoặc tắt chế độ chỉnh sửa để quét phiếu!");
-      setIsScanning(false);
+    if (error) {
+      alert(`Lỗi: ${error}`);
+      setError("");
     }
-  }, [config?.isCameraOn, isEditMode, model, isScanning]);
+  }, [error]);
 
   // Tải danh sách thiết bị
   useEffect(() => {
@@ -1153,10 +1189,10 @@ const commitSave = async () => {
   }, [isEditMode, isVoteValid, candidates, config?.tallyMethod]);
 
   if (!config || !candidates) return null;
-  
+
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden font-sans select-none">
-    {isBusy && (
+      {isBusy && (
         <div className="fixed inset-0 bg-black/40 z-[9999] flex items-center justify-center">
           <div className="bg-white px-6 py-4 rounded-xl text-sm font-semibold">
             ⏳ Đang lưu dữ liệu train, vui lòng chờ...
@@ -1183,7 +1219,7 @@ const commitSave = async () => {
             <div
               ref={videoContainerRef}
               className={`absolute flex items-center justify-center transition-all
-                ${isEditMode ? "z-[105] ring-4 ring-blue-500 ring-dashed bg-blue-500/10 shadow-2xl" : "z-0"}`}
+              ${isEditMode ? "z-[105] ring-4 ring-blue-500 ring-dashed bg-blue-500/10 shadow-2xl" : "z-0"}`}
               style={{
                 width: `${(config as any).videoWidth ?? 50}%`,
                 height: `${(config as any).videoHeight ?? 50}%`,
@@ -1244,7 +1280,7 @@ const commitSave = async () => {
               <div
                 ref={currentRef}
                 className={`absolute flex flex-col border-2 transition-all shadow-md
-                  ${isEditMode ? "border-blue-500 shadow-xl cursor-move" : "border-transparent overflow-hidden"}`}
+                ${isEditMode ? "border-blue-500 shadow-xl cursor-move" : "border-transparent overflow-hidden"}`}
                 style={{
                   width: can.width,
                   height: can.height,
@@ -1393,22 +1429,22 @@ const commitSave = async () => {
                     setTempStates((p) => ({ ...p, [can.id!]: !p[can.id!] }))
                   }
                   className={`
-                      w-full h-full flex items-center justify-end px-4 font-bold text-right transition-all relative overflow-hidden
-                      ${isEditMode ? "" : "cursor-pointer"}
-                      ${tempStates[can.id!] ? "line-through decoration-[3px] opacity-70" : ""}
-                      
-                      /* Hiệu ứng Quét AI */
-                      ${
-                        isScanning
-                          ? `
-                        before:absolute before:inset-0 before:bg-blue-500/10 before:animate-pulse
-                        after:absolute after:top-0 after:left-0 after:w-full after:h-[2px] 
-                        after:bg-gradient-to-r after:from-transparent after:via-blue-400 after:to-transparent 
-                        after:animate-scan after:shadow-[0_0_15px_rgba(96,165,250,0.8)]
-                      `
-                          : ""
-                      }
-                    `}
+                    w-full h-full flex items-center justify-end px-4 font-bold text-right transition-all relative overflow-hidden
+                    ${isEditMode ? "" : "cursor-pointer"}
+                    ${tempStates[can.id!] ? "line-through decoration-[3px] opacity-70" : ""}
+                    
+                    /* Hiệu ứng Quét AI */
+                    ${
+                      isScanning
+                        ? `
+                      before:absolute before:inset-0 before:bg-blue-500/10 before:animate-pulse
+                      after:absolute after:top-0 after:left-0 after:w-full after:h-[2px] 
+                      after:bg-gradient-to-r after:from-transparent after:via-blue-400 after:to-transparent 
+                      after:animate-scan after:shadow-[0_0_15px_rgba(96,165,250,0.8)]
+                    `
+                        : ""
+                    }
+                  `}
                   style={{
                     textDecorationColor: tempStates[can.id!]
                       ? (can as any).strikeColor || "#ef4444"
@@ -1642,13 +1678,13 @@ const commitSave = async () => {
             // KHÓA NÚT: Nếu phiếu không hợp lệ (sai số lượng chọn) HOẶC đang ở chế độ chỉnh sửa vị trí (isEditMode)
             // disabled={!isVoteValid || isEditMode}
             className={`px-6 py-4 w-[450px] h-[100px] rounded-3xl font-bold shadow-lg active:scale-95 flex items-center gap-6 border-2 transition-all relative overflow-hidden
-        ${
-          !isVoteValid || isEditMode
-            ? "bg-zinc-800 text-zinc-400 border-zinc-700 cursor-not-allowed opacity-90"
-            : editingVoteId
-              ? "bg-amber-500 hover:bg-amber-600 text-black border-black/20 cursor-pointer" // Sáng lên khi sửa đúng số lượng
-              : "bg-red-600 hover:bg-red-700 text-white border-white/30 cursor-pointer" // Sáng lên khi lưu mới đúng số lượng
-        }`}
+      ${
+        !isVoteValid || isEditMode
+          ? "bg-zinc-800 text-zinc-400 border-zinc-700 cursor-not-allowed opacity-90"
+          : editingVoteId
+            ? "bg-amber-500 hover:bg-amber-600 text-black border-black/20 cursor-pointer" // Sáng lên khi sửa đúng số lượng
+            : "bg-red-600 hover:bg-red-700 text-white border-white/30 cursor-pointer" // Sáng lên khi lưu mới đúng số lượng
+      }`}
           >
             {/* CỘT TRÁI: SỐ PHIẾU */}
             <div
@@ -1678,7 +1714,7 @@ const commitSave = async () => {
                 <div className="flex flex-col items-center text-center">
                   <div
                     className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-bold shadow-md border whitespace-nowrap mb-2
-              ${editingVoteId ? "bg-black text-amber-500 border-amber-500/30" : "bg-amber-500 text-white border-white/20"}`}
+            ${editingVoteId ? "bg-black text-amber-500 border-amber-500/30" : "bg-amber-500 text-white border-white/20"}`}
                   >
                     <AlertCircle size={16} />
                     <span className="uppercase">
@@ -1800,10 +1836,15 @@ const commitSave = async () => {
                   <Settings size={14} />
                 </button>
 
+                <button onClick={() => setIsTrainMode(!isTrainMode)}>
+                  <span className="text-[15px] p-2 text-zinc-500 font-bold uppercase flex items-center gap-1">
+                    {isTrainMode ? "🧠" : "🤖"}
+                  </span>
+                </button>
+
                 <button
-                  onClick={(e) => {
-                    toggleScanning();
-                    e.currentTarget.blur();
+                  onClick={() => {
+                    runInference();
                   }}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-xl shadow-md font-bold text-[10px] border transition-all active:scale-95 ${
                     isScanning
@@ -1811,14 +1852,10 @@ const commitSave = async () => {
                       : "bg-zinc-800 border-zinc-700 text-zinc-400"
                   }`}
                 >
-                  <div
-                    className={`w-1.5 h-1.5 rounded-full ${isScanning ? "bg-white" : "bg-zinc-500"}`}
-                  />
-                  <span className="uppercase">
-                    {isScanning ? "RUNNING" : "PAUSED"}
+                  <span className="uppercase text-[15px]">
+                    {isScanning ? "▶️" : "⏸️"}
                   </span>
                 </button>
-
                 {/* Expand / Collapse */}
                 <button
                   onClick={() => setIsExpanded((v) => !v)}
@@ -1839,87 +1876,81 @@ const commitSave = async () => {
 
             {/* Phần điều chỉnh độ chính xác - Hiển thị khi bấm nút Settings */}
             {showSettings && (
-              <div className="px-4 py-4 bg-white/[0.02] border-b border-white/5 animate-in fade-in slide-in-from-top-1 flex flex-col gap-4">
+              <div className="px-1 bg-white/[0.02] border-b border-white/5 animate-in fade-in slide-in-from-top-1 flex flex-col gap-4">
                 {/* Hàng 1: Nạp Model & Hiển thị độ nhạy */}
                 <div className="flex justify-between items-end">
-                  <button onClick={() => setIsTrainMode(!isTrainMode)}>
-                    <span className="text-[10px] p-2 text-zinc-500 font-bold uppercase flex items-center gap-1">
-                      {isTrainMode
-                        ? "🔴 Train"
-                        : "🟢 Check"}
-                    </span>
-                  </button>
-                  {isTrainMode && <button onClick={selectTrainFolder}>
-                    <span className="text-[10px] p-2 text-zinc-500 font-bold uppercase flex items-center gap-1">
-                    📁 Chọn thư mục lưu hình ảnh
-                    </span>
-                  </button>}
-                  
+                  {isTrainMode && (
+                    <button onClick={selectTrainFolder}>
+                      <span className="text-[10px] p-2 text-zinc-500 font-bold uppercase flex items-center gap-1">
+                        📁 Chọn thư mục lưu hình ảnh
+                      </span>
+                    </button>
+                  )}
                 </div>
-                {!isTrainMode && (<>
-                <div  className="flex justify-between items-end">
-                  <div className="flex flex-col gap-1.5">
-                    <span className="text-[10px] text-zinc-500 font-bold uppercase flex items-center gap-1">
-                      <Database size={10} /> Model Engine
-                    </span>
-                    <div className="relative">
-                      <input
-                        type="file"
-                        id="model-upload"
-                        multiple
-                        onChange={handleModelUpload}
-                        className="hidden"
-                        accept=".json,.bin"
-                      />
-                      <label
-                        htmlFor="model-upload"
-                        className="no-drag flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border border-white/10 hover:border-blue-500/50 hover:bg-zinc-800 rounded-lg cursor-pointer transition-all group"
-                      >
-                        <Upload
-                          size={12}
-                          className="text-zinc-500 group-hover:text-blue-400"
-                        />
-                        <span className="text-[10px] text-zinc-300 font-bold uppercase">
-                          Cập nhật tệp
+                {!isTrainMode && (
+                  <>
+                    <div className="flex justify-between items-end">
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-[10px] text-zinc-500 font-bold uppercase flex items-center gap-1">
+                          <Database size={10} /> Model Engine
                         </span>
-                      </label>
-                    </div>
-                  </div>
+                        <div className="relative">
+                          <input
+                            type="file"
+                            id="model-upload"
+                            multiple
+                            onChange={handleModelUpload}
+                            className="hidden"
+                            accept=".json,.bin"
+                          />
+                          <label
+                            htmlFor="model-upload"
+                            className="no-drag flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border border-white/10 hover:border-blue-500/50 hover:bg-zinc-800 rounded-lg cursor-pointer transition-all group"
+                          >
+                            <Upload
+                              size={12}
+                              className="text-zinc-500 group-hover:text-blue-400"
+                            />
+                            <span className="text-[10px] text-zinc-300 font-bold uppercase">
+                              Cập nhật tệp
+                            </span>
+                          </label>
+                        </div>
+                      </div>
 
-                  <div className="flex flex-col items-end gap-1.5">
-                    <span className="text-[10px] text-zinc-500 font-bold uppercase flex items-center gap-1">
-                      <Target size={10} /> Độ nhạy
-                    </span>
-                    <span className="text-[11px] text-blue-400 font-mono font-bold bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
-                      {Math.round(aiThreshold * 100)}%
-                    </span>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <input
-                    type="range"
-                    min="0.5"
-                    max="0.99"
-                    step="0.01"
-                    value={aiThreshold}
-                    onChange={(e) =>
-                      updateAiThreshold(parseFloat(e.target.value))
-                    }
-                    className="w-full h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500 no-drag"
-                  />
-                  <div className="flex justify-between">
-                    <p className="text-[9px] text-zinc-500 leading-tight italic">
-                      * Cao: Chính xác | Thấp: Nhạy hơn
-                    </p>
-                    <span className="text-[8px] text-zinc-600 font-bold uppercase tracking-tighter">
-                      Fine-tuning
-                    </span>
-                  </div>
-                </div>
-                </>
+                      <div className="flex flex-col items-end gap-1.5">
+                        <span className="text-[10px] text-zinc-500 font-bold uppercase flex items-center gap-1">
+                          <Target size={10} /> Độ nhạy
+                        </span>
+                        <span className="text-[11px] text-blue-400 font-mono font-bold bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
+                          {Math.round(aiThreshold * 100)}%
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <input
+                        type="range"
+                        min="0.5"
+                        max="0.99"
+                        step="0.01"
+                        value={aiThreshold}
+                        onChange={(e) =>
+                          updateAiThreshold(parseFloat(e.target.value))
+                        }
+                        className="w-full h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500 no-drag"
+                      />
+                      <div className="flex justify-between">
+                        <p className="text-[9px] text-zinc-500 leading-tight italic">
+                          * Cao: Chính xác | Thấp: Nhạy hơn
+                        </p>
+                        <span className="text-[8px] text-zinc-600 font-bold uppercase tracking-tighter">
+                          Fine-tuning
+                        </span>
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
-                  
             )}
 
             {/* Body */}

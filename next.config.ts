@@ -2,7 +2,7 @@
 const nextConfig = {
   output: "export", // Bắt buộc
   trailingSlash: true,
-  distDir: "out", // Thư mục xuất file tĩnh
+  //distDir: "out", // Thư mục xuất file tĩnh
   images: {
     unoptimized: true, // Electron không hỗ trợ Image Optimization của Next.js
   },
