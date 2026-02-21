@@ -141,6 +141,22 @@ export default function Home() {
 
           <div className="flex flex-wrap justify-center items-center gap-x-4 gap-y-2">
             <div className="flex items-center gap-1.5">
+              <span className="opacity-60">Phát triển bởi:</span>
+              <span className="text-zinc-900 dark:text-zinc-100">
+                TRƯƠNG TẤN THANH 
+              </span>
+            </div>
+           
+            <div className="flex items-center gap-1.5">
+              <div className="hidden sm:block opacity-30">•Liên hệ:</div>
+              <span className="text-zinc-900 dark:text-zinc-100">
+                0387 760 187
+              </span>
+            </div>
+          </div> 
+
+          {/* <div className="flex flex-wrap justify-center items-center gap-x-4 gap-y-2">
+            <div className="flex items-center gap-1.5">
               <span className="opacity-60">Phát triển bởi</span>
               <span className="text-zinc-900 dark:text-zinc-100">
                 CÔNG TY TNHH NITSOFT VIỆT NAM
@@ -158,7 +174,7 @@ export default function Home() {
                 0932 556 662
               </span>
             </div>
-          </div>
+          </div> */}
         </footer>
       </main>
     </div>

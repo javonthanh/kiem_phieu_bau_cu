@@ -212,10 +212,11 @@ const exportConfig = async () => {
     alert("Lỗi khi xuất dữ liệu!");
   }
 };
+
 const importConfig = async (e) => {
   const file = e.target.files[0];
   if (!file) return;
-
+  alert(defaultElectionSlug)
   const reader = new FileReader();
   reader.onload = async (event) => {
     try {
@@ -231,10 +232,12 @@ const importConfig = async (e) => {
       const validTypes = ['Đại biểu Quốc hội', 'HĐND Tỉnh/Thành phố', 'HĐND Xã/Phường'];
       const validSlugs = ['quoc-hoi', 'tinh', 'xa'];
 
-      if (!validTypes.includes(importedData.type) || !validSlugs.includes(importedData.slug)) {
-        alert(`Lỗi: Loại bầu cử "${importedData.type}" không hợp lệ!`);
+      if (!validTypes.includes(importedData.type) || !validSlugs.includes(importedData.slug) || importedData.slug !== defaultElectionSlug) {
+        alert(`Lỗi: File cấu hình không hợp lệ! Đảm bảo chọn đúng file cho loại bầu cử hiện tại (${defaultElectionType}).`);
         return;
       }
+
+
 
       // 3. Hiển thị xác nhận rõ ràng cho người dùng
       const confirmMsg = `Hệ thống phát hiện cấu hình cấp: [${importedData.type.toUpperCase()}]\n` +
@@ -246,18 +249,20 @@ const importConfig = async (e) => {
         return;
       }
 
-      // 4. Ghi dữ liệu vào Dexie DB
-      await db.transaction('rw', db.config, db.candidates, async () => {
-        await db.config.clear();
-        await db.candidates.clear();
+    await db.transaction('rw', db.config, db.candidates, async () => {
+      await db.candidates.clear();
 
-        // Loại bỏ ID cũ để tránh conflict Primary Key
-        const { id: cId, ...configToSave } = importedData.config;
-        await db.config.add(configToSave);
-        
-        const candidatesToSave = importedData.candidates.map(({ id, ...rest }) => rest);
-        await db.candidates.bulkAdd(candidatesToSave);
+      await db.config.put({
+        id: 1,
+        ...importedData.config
       });
+
+      const candidatesToSave = importedData.candidates.map(
+        ({ id, ...rest }) => rest
+      );
+
+      await db.candidates.bulkAdd(candidatesToSave);
+    });
 
       alert(`Nhập thành công cấu hình bầu cử cấp ${importedData.type}!`);
     } catch (error) {
@@ -387,7 +392,6 @@ const importConfig = async (e) => {
         boardMembers: config.boardMembers || "",//Thành viên tổ bầu cử
         witnesses: config.witnesses || "",
       });
-      console.log(config)
     }
   }, [config]);
 
@@ -1234,7 +1238,7 @@ const importConfig = async (e) => {
       >
         {/* Số mẫu Badge */}
         <div className="absolute top-4 right-4 px-2 py-1 bg-slate-100 rounded-md text-[10px] font-black text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
-          MẪU {report.subtitle}
+          {report.subtitle}
         </div>
 
         {/* Nội dung chính */}
