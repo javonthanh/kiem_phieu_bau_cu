@@ -67,12 +67,12 @@ export default function AdminPage() {
     title: "BIÊN BẢN KẾT QUẢ KIỂM PHIẾU BẦU CỬ ĐẠI BIỂU QUỐC HỘI",
     action: exportReportWordKPQH, // Hàm bạn đã viết
   },
-  {
-    name: "mau19-xd-kq-qh",
-    subtitle: "Mẫu 19",
-    title: "BIÊN BẢN XÁC ĐỊNH KẾT QUẢ BẦU CỬ ĐẠI BIỂU QUỐC HỘI",
-    action: exportReportWordXDKQQH, 
-  }
+  // {
+  //   name: "mau19-xd-kq-qh",
+  //   subtitle: "Mẫu 19",
+  //   title: "BIÊN BẢN XÁC ĐỊNH KẾT QUẢ BẦU CỬ ĐẠI BIỂU QUỐC HỘI",
+  //   action: exportReportWordXDKQQH, 
+  // }
 ]
   const REPORT_TEMPLATES_TINH = [
   {
@@ -81,12 +81,12 @@ export default function AdminPage() {
     title: "BIÊN BẢN KẾT QUẢ KIỂM PHIẾU BẦU CỬ ĐẠI BIỂU HĐND TỈNH/THÀNH PHỐ",
     action: exportReportWordKPTinh, // Hàm bạn đã viết
   },
-  {
-    name: "mau24-xd-kq-hdnd",
-    subtitle: "Mẫu 24",
-    title: "BIÊN BẢN XÁC ĐỊNH KẾT QUẢ BẦU CỬ ĐẠI BIỂU HĐND TỈNH/THÀNH PHỐ",
-    action: exportReportWordXDKQTinh, 
-  }
+  // {
+  //   name: "mau24-xd-kq-hdnd",
+  //   subtitle: "Mẫu 24",
+  //   title: "BIÊN BẢN XÁC ĐỊNH KẾT QUẢ BẦU CỬ ĐẠI BIỂU HĐND TỈNH/THÀNH PHỐ",
+  //   action: exportReportWordXDKQTinh, 
+  // }
 ]
 
 const REPORT_TEMPLATES_XA = [
@@ -476,6 +476,14 @@ const importConfig = async (e) => {
     }
     if (actualVoters > totalVoters) {
       errors.push("Số cử tri đi bầu thực tế không thể lớn hơn tổng số cử tri.");
+    }
+
+    if (Number(actualVoters) < Number(receivedVotes)) {
+      errors.push("Số cử tri đi bầu thực tế phải bằng hoặc lớn hơn số phiếu thu vào.");
+    }
+
+    if (Number(issuedVotes) !== Number(actualVoters)) {
+      errors.push("Số cử tri đi bầu thực tế phải bằng số phiếu phát ra.");
     }
 
     // Nếu có lỗi, thông báo và dừng việc lưu
@@ -891,7 +899,7 @@ const importConfig = async (e) => {
         className="w-full bg-green-700 text-white py-3.5 rounded-xl font-black text-[11px] uppercase hover:bg-green-800 disabled:bg-zinc-100 disabled:text-zinc-400 transition-all flex items-center justify-center gap-2 shadow-sm"
       >
         <TableIcon size={14} />
-        Xuất Excel
+        Xuất Excel Kết quả kiểm phiếu chi tiết
       </button>
     </div>
   </div>
@@ -960,12 +968,12 @@ const importConfig = async (e) => {
       </div>
     </div>
 
-    <button
+    {/* <button
       onClick={saveElectionDetails}
       className="flex items-center gap-2 bg-zinc-900 hover:bg-black text-white px-8 py-3.5 rounded-2xl font-black text-xs shadow-xl shadow-zinc-200 transition-all active:scale-95 uppercase tracking-widest"
     >
       <Check size={18} strokeWidth={3} /> Lưu thông tin
-    </button>
+    </button> */}
   </div>
 
  <div className="grid grid-cols-1 gap-8">
@@ -978,7 +986,7 @@ const importConfig = async (e) => {
         <label className="text-[10px] font-black text-zinc-400 uppercase tracking-wider ml-1 mb-1.5 block">Tỉnh/Thành phố</label>
         <input
           type="text"
-          value={electionDetails.province || ""}
+          value={electionDetails.province || "Đà Nẵng"}
           onChange={(e) => setElectionDetails({ ...electionDetails, province: e.target.value })}
           className="w-full border border-zinc-200 bg-white p-3.5 rounded-xl outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-bold text-sm transition-all"
         />
@@ -987,16 +995,16 @@ const importConfig = async (e) => {
         <label className="text-[10px] font-black text-zinc-400 uppercase tracking-wider ml-1 mb-1.5 block">Xã/Phường</label>
         <input
           type="text"
-          value={electionDetails.district || ""}
+          value={electionDetails.district || "Hương Trà"}
           onChange={(e) => setElectionDetails({ ...electionDetails, district: e.target.value })}
           className="w-full border border-zinc-200 bg-white p-3.5 rounded-xl outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-bold text-sm transition-all"
         />
       </div>
       <div className="sm:col-span-1">
-        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-wider ml-1 mb-1.5 block">Tên đơn vị bầu cử</label>
+        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-wider ml-1 mb-1.5 block">Tổ bầu cử</label>
         <input
           type="text"
-          placeholder="Tổ số 1..."
+          placeholder="số 1..."
           value={electionDetails.unitName || ""}
           onChange={(e) => setElectionDetails({ ...electionDetails, unitName: e.target.value })}
           className="w-full border border-zinc-200 bg-white p-3.5 rounded-xl outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-bold text-sm transition-all"
@@ -1113,10 +1121,11 @@ const importConfig = async (e) => {
           <textarea
             value={electionDetails.boardMembers || ""}
             onChange={(e) => setElectionDetails({ ...electionDetails, boardMembers: e.target.value })}
-            className="w-full bg-white/80 border border-blue-200/50 p-3 rounded-xl outline-none font-bold text-sm h-[80px] resize-none text-blue-900 focus:bg-white transition-all shadow-inner"
+            className="w-full bg-white/80 border border-blue-200/50 p-3 rounded-xl outline-none font-bold text-sm h-[120px] resize-none text-blue-900 focus:bg-white transition-all shadow-inner"
             placeholder="Danh sách thành viên..."
           />
         </div>
+       
       </div>
 
       {/* CHỨNG KIẾN */}
@@ -1143,18 +1152,26 @@ const importConfig = async (e) => {
             />
           </div>
         </div>
-         <Link
+        
+      </div>
+  
+    </div>
+        <button
+      onClick={saveElectionDetails}
+      className="w-full bg-red-700 text-white py-3.5 rounded-xl font-black text-[11px] uppercase hover:bg-red-800 disabled:bg-zinc-100 disabled:text-zinc-400 transition-all flex items-center justify-center gap-2 shadow-sm"
+    >
+      <Check size={18} strokeWidth={3} /> Lưu thông tin
+    </button>
+     <Link
         href="/admin/detailed-stats"
         prefetch={false}
         className="w-full bg-green-700 text-white py-3.5 rounded-xl font-black text-[11px] uppercase hover:bg-green-800 disabled:bg-zinc-100 disabled:text-zinc-400 transition-all flex items-center justify-center gap-2 shadow-sm"
       >
         Xem thống kê chi tiết
       </Link>
-      </div>
-     
-    </div>
   </div>
 </section>
+
       <section
           className="
     lg:col-span-12
@@ -1167,11 +1184,77 @@ const importConfig = async (e) => {
         >
   <h2 className="text-lg font-extrabold text-slate-800 mb-6 uppercase tracking-wide flex items-center gap-2">
     <div className="w-1 h-6 bg-blue-600 rounded-full" />
-    Danh sách biểu mẫu biên bản
+    Biểu mẫu biên bản
   </h2>
 
   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
     {config?.slug =='quoc-hoi' && REPORT_TEMPLATES_QH.map((report) => (
+      <button
+        key={report.name}
+        onClick={() => report.action()} // Gọi hàm xử lý tương ứng
+        className="
+          group relative p-5 rounded-2xl border border-slate-200 bg-white
+          text-left transition-all duration-300
+          hover:border-blue-500 hover:shadow-xl hover:-translate-y-1.5
+          active:scale-[0.96] flex flex-col justify-between min-h-[140px]
+        "
+      >
+        {/* Số mẫu Badge */}
+        <div className="absolute top-4 right-4 px-2 py-1 bg-slate-100 rounded-md text-[10px] font-black text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
+          MẪU {report.subtitle}
+        </div>
+
+        {/* Nội dung chính */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">
+              <FileText size={16} />
+            </div>
+            <div className="text-[10px] font-bold text-blue-600 uppercase tracking-tighter">
+              Báo cáo Word
+            </div>
+          </div>
+
+          <div className="text-sm font-black text-slate-800 leading-tight group-hover:text-blue-700 line-clamp-2">
+            {report.title}
+          </div>
+        </div>
+      </button>
+    ))}
+     {config?.slug =='tinh' && REPORT_TEMPLATES_TINH.map((report) => (
+      <button
+        key={report.name}
+        onClick={() => report.action()} // Gọi hàm xử lý tương ứng
+        className="
+          group relative p-5 rounded-2xl border border-slate-200 bg-white
+          text-left transition-all duration-300
+          hover:border-blue-500 hover:shadow-xl hover:-translate-y-1.5
+          active:scale-[0.96] flex flex-col justify-between min-h-[140px]
+        "
+      >
+        {/* Số mẫu Badge */}
+        <div className="absolute top-4 right-4 px-2 py-1 bg-slate-100 rounded-md text-[10px] font-black text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
+          MẪU {report.subtitle}
+        </div>
+
+        {/* Nội dung chính */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">
+              <FileText size={16} />
+            </div>
+            <div className="text-[10px] font-bold text-blue-600 uppercase tracking-tighter">
+              Báo cáo Word
+            </div>
+          </div>
+
+          <div className="text-sm font-black text-slate-800 leading-tight group-hover:text-blue-700 line-clamp-2">
+            {report.title}
+          </div>
+        </div>
+      </button>
+    ))}
+     {config?.slug =='xa' && REPORT_TEMPLATES_XA.map((report) => (
       <button
         key={report.name}
         onClick={() => report.action()} // Gọi hàm xử lý tương ứng

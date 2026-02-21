@@ -4,7 +4,7 @@ import { db, decrypt } from "@/lib/db";
 import { saveAs } from "file-saver";
 import PizZip from "pizzip";
 import Docxtemplater from "docxtemplater";
-
+import expressions from "angular-expressions";
 // --- HÀM TRỢ GIÚP ---
 // const loadFile = (url: string): Promise<ArrayBuffer> => {
 //   return new Promise((resolve, reject) => {
@@ -19,11 +19,26 @@ import Docxtemplater from "docxtemplater";
 //   });
 // };
 
+expressions.filters.upper = function (input) {
+  if (!input) return "";
+  return input.toUpperCase();
+};
+
+function angularParser(tag: string) {
+  const expr = expressions.compile(tag.replace(/(’|“|”|‘)/g, "'"));
+  return {
+    get: (scope: any) => {
+      // Chạy biểu thức với dữ liệu truyền vào
+      return expr(scope);
+    },
+  };
+}
+
 const loadFile = async (url: string): Promise<ArrayBuffer> => {
   try {
     // Luôn đảm bảo có dấu / ở đầu để fetch từ gốc (public)
     const fetchUrl = url.startsWith("/") ? url : `/${url}`;
-    alert(fetchUrl);
+    // alert(fetchUrl);
     console.log("Đang tải từ Root:", fetchUrl);
 
     const response = await fetch(fetchUrl);
@@ -194,6 +209,7 @@ const generateVotingReport = async (templatePath: string, fileName: string) => {
     const content = await loadFile(templatePath);
     const zip = new PizZip(content);
     const doc = new Docxtemplater(zip, {
+      parser: angularParser,
       paragraphLoop: true,
       linebreaks: true,
     });
@@ -207,7 +223,7 @@ const generateVotingReport = async (templatePath: string, fileName: string) => {
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     });
 
-    saveAs(out, `${fileName}_${config.unitName || "Export"}.docx`);
+    saveAs(out, `${fileName}_ToBauCu_${config.unitName || "Export"}.docx`);
   } catch (error: any) {
     alert("Lỗi hệ thống: " + error.message);
   }
@@ -228,7 +244,7 @@ export const exportReportWordXDKQQH = () =>
 // 3. Kết quả bầu cử cấp Tỉnh
 export const exportReportWordKPTinh = () =>
   generateVotingReport(
-    "/templates/mau23-bb-kiemphieu-hdnd.docx",
+    "/templates/mau23-bb-kiemphieu-hdnd-tinh.docx",
     "Ket_Qua_Bau_Cu_Tinh"
   );
 
@@ -242,7 +258,7 @@ export const exportReportWordXDKQTinh = () =>
 // 5. Kết quả bầu cử cấp Xã
 export const exportReportWordKPXa = () =>
   generateVotingReport(
-    "/templates/mau23-bb-kiemphieu-hdnd.docx",
+    "/templates/mau23-bb-kiemphieu-hdnd-xa.docx",
     "Ket_Qua_Bau_Cu_Xa"
   );
 

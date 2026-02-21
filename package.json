@@ -46,6 +46,7 @@
   "dependencies": {
     "@teachablemachine/image": "^0.8.5",
     "@tensorflow/tfjs": "^4.22.0",
+    "angular-expressions": "^1.5.1",
     "crypto-js": "^4.2.0",
     "dexie": "^4.2.1",
     "dexie-react-hooks": "^4.2.0",
