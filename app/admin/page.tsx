@@ -49,7 +49,7 @@ declare global {
 }
 
 export default function AdminPage() {
-  const { showAlert } = useAppAlert();
+  const { showAlert, showConfirm } = useAppAlert();
   const config = useLiveQuery(() => db.config.toCollection().first());
   const candidates = useLiveQuery(() => db.candidates.toArray());
   const votes = useLiveQuery(() => db.votes.toArray());
@@ -222,6 +222,7 @@ export default function AdminPage() {
       showAlert({
         title: "Lỗi",
         message: "Lỗi khi xuất dữ liệu!",
+        type: "error",
       });
     }
   };
@@ -240,6 +241,7 @@ export default function AdminPage() {
           showAlert({
             title: "Lỗi",
             message: "File không đúng định dạng cấu hình bầu cử!",
+            type: "error",
           });
           return;
         }
@@ -260,6 +262,7 @@ export default function AdminPage() {
           showAlert({
             title: "Lỗi",
             message: `File cấu hình không hợp lệ! Đảm bảo chọn đúng file cho loại bầu cử hiện tại (${defaultElectionType}).`,
+            type: "error",
           });
           return;
         }
@@ -267,10 +270,14 @@ export default function AdminPage() {
         // 3. Hiển thị xác nhận rõ ràng cho người dùng
         const confirmMsg =
           `Hệ thống phát hiện cấu hình cấp: [${importedData.type.toUpperCase()}]\n` +
-          `Slug nhận diện: ${importedData.slug}\n\n` +
           `Bạn có chắc chắn muốn ghi đè toàn bộ dữ liệu hiện tại không?`;
 
-        if (!confirm(confirmMsg)) {
+        const ok = await showConfirm({
+          title: "Xác nhận",
+          message: confirmMsg,
+        });
+
+        if (!ok) {
           e.target.value = "";
           return;
         }
@@ -299,6 +306,7 @@ export default function AdminPage() {
         showAlert({
           title: "Lỗi",
           message: "Lỗi: Cấu trúc file JSON bị hỏng hoặc không đúng mẫu!",
+          type: "error",
         });
       } finally {
         e.target.value = "";
@@ -312,6 +320,7 @@ export default function AdminPage() {
       showAlert({
         title: "Không hỗ trợ",
         message: "Chức năng khôi phục chỉ khả dụng trong ứng dụng Electron.",
+        type: "error",
       });
       return;
     }
@@ -330,6 +339,7 @@ export default function AdminPage() {
           showAlert({
             title: "Lỗi",
             message: "Lỗi: " + backup.error,
+            type: "error",
           });
         return;
       }
@@ -346,6 +356,7 @@ export default function AdminPage() {
         showAlert({
           title: "Lỗi",
           message: "File backup không hợp lệ hoặc không đúng ứng dụng!",
+          type: "error",
         });
         return;
       }
@@ -356,6 +367,7 @@ export default function AdminPage() {
         showAlert({
           title: "Lỗi",
           message: "File backup thiếu dữ liệu votes hoặc candidates!",
+          type: "error",
         });
         return;
       }
@@ -370,6 +382,7 @@ export default function AdminPage() {
         showAlert({
           title: "Lỗi",
           message: `File backup thuộc cấp "${meta.electionLevel.toUpperCase()}", không khớp với cấp hiện tại "${currentElectionLevel.toUpperCase()}".`,
+          type: "error",
         });
         return;
       }
@@ -397,6 +410,7 @@ export default function AdminPage() {
       showAlert({
         title: "Thành công",
         message: `Khôi phục dữ liệu thành công!\nCấp: ${meta.electionLevel.toUpperCase()}\nThời điểm backup: ${meta.exportDate}`,
+        type: "success"
       });
 
       window.location.reload();
@@ -405,6 +419,7 @@ export default function AdminPage() {
       showAlert({
         title: "Lỗi",
         message: "Đã xảy ra lỗi trong quá trình khôi phục dữ liệu!",
+        type: "error",
       });
     }
   };
@@ -451,6 +466,7 @@ export default function AdminPage() {
       showAlert({
         title: "Lỗi",
         message: "❌ Dữ liệu đã khóa!",
+        type: "error",
       });
       return;
     }
@@ -463,6 +479,7 @@ export default function AdminPage() {
       showAlert({
         title: "Lỗi",
         message: "❌ Lỗi logic! Số người bầu không được lớn hơn số ứng viên",
+        type: "error",
       });
       return;
     }
@@ -487,11 +504,13 @@ export default function AdminPage() {
       showAlert({
         title: "Thành công",
         message: "✅ Cấu hình đã được lưu thành công!",
+        type: "success",
       });
     } catch (e) {
       showAlert({
         title: "Lỗi",
         message: "❌ Đã có lỗi xảy ra khi lưu cấu hình!",
+        type: "error",
       });
     }
   };
@@ -567,6 +586,7 @@ export default function AdminPage() {
         showAlert({
           title: "Lỗi dữ liệu",
           message: "❌ Dữ liệu không hợp lệ:\n- " + errors.join("\n- "),
+          type: "error",
         });
         return;
       }
@@ -589,12 +609,14 @@ export default function AdminPage() {
       showAlert({
         title: "Thành công",
         message: "✅ Thông tin tổng hợp đã được lưu thành công!",
+        type: "success",
       });
     } catch (error) {
       console.error("Lỗi khi lưu:", error);
       showAlert({
         title: "Lỗi",
         message: "❌ Không thể lưu thông tin. Vui lòng kiểm tra lại.",
+        type: "error",
       });
     }
   };
@@ -603,6 +625,7 @@ export default function AdminPage() {
       showAlert({
         title: "Lỗi",
         message: "❌ Vui lòng nhập tên ứng cử viên trước khi lưu!",
+        type: "error",
       });
       return;
     }
@@ -611,6 +634,7 @@ export default function AdminPage() {
       return showAlert({
         title: "Lỗi",
         message: "❌ Đã đủ số lượng ứng cử viên!",
+        type: "error",
       });
     await db.candidates.add({
       name: newName.trim(),
@@ -644,15 +668,17 @@ export default function AdminPage() {
       showAlert({
         title: "Mã xác nhận không chính xác",
         message: "❌ Mã xác nhận không chính xác!",
+        type: "error",
       });
       return;
     }
 
-    const doubleCheck = confirm(
-      `🔥 XÁC NHẬN RESET: ${requiredPin}\nToàn bộ dữ liệu sẽ bị xóa sạch. Tiếp tục?`,
-    );
+    const ok = await showConfirm({
+      title: "XÁC NHẬN RESET",
+      message: `🔥 ${requiredPin}\nToàn bộ dữ liệu sẽ bị xóa sạch. Tiếp tục?`,
+    });
 
-    if (doubleCheck) {
+    if (ok) {
       try {
         await Promise.all([
           db.votes.clear(),
@@ -663,16 +689,14 @@ export default function AdminPage() {
         // localStorage.removeItem("selected_election_name");
         setShowResetModal(false);
         setConfirmCode("");
-        showAlert({
-          title: "Đã reset",
-          message: "✅ Hệ thống đã được đưa về trạng thái mặc định.",
-        });
+        
         window.location.reload();
       } catch (error) {
         console.error("Lỗi khi reset:", error);
         showAlert({
           title: "Lỗi",
           message: "❌ Có lỗi xảy ra khi xóa dữ liệu.",
+          type: "error",
         });
       }
     }
@@ -707,17 +731,8 @@ export default function AdminPage() {
     config.candidateLimit > 0 &&
     candidates?.length === config.candidateLimit;
 
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setTimeout(() => {
-      rootRef.current?.focus();
-    }, 150);
-  }, []);
-
   return (
     <div
-      ref={rootRef}
       tabIndex={-1}
       className="p-4 md:p-6 max-w-7xl mx-auto space-y-6 bg-zinc-50 min-h-screen"
     >
@@ -754,7 +769,7 @@ export default function AdminPage() {
         <section
           className={`lg:col-span-12 bg-white p-6 rounded-3xl shadow-sm border border-zinc-200 flex flex-col transition-opacity ${isLocked ? "opacity-75" : ""}`}
         >
-          <div className={`flex flex-col lg:flex-row justify-between items-center gap-4 mb-6 pb-6 ${config?.seats > 0 ? "border-b" : ""} border-zinc-200`}>
+          <div className={`flex flex-col lg:flex-row justify-between items-center gap-4   ${config?.seats > 0 ? "mb-6 pb-6 border-b" : ""} border-zinc-200`}>
             {/* Thêm các Icon cần thiết: Download, Upload */}
             <div className="flex items-center gap-4">
               <div className="bg-blue-50 p-2 rounded-xl text-blue-600">
@@ -1568,7 +1583,12 @@ export default function AdminPage() {
                 </div>
               </div>
               <button
-                onClick={handleResetData}
+                // onClick={handleResetData}
+                onClick={() => {
+                  setShowResetModal(false);
+                  setConfirmCode("");
+                  handleResetData();
+                }}
                 className="w-full bg-red-600 text-white py-4 rounded-2xl font-black text-sm uppercase shadow-lg shadow-red-200 hover:bg-red-700 transition-all"
               >
                 Xác nhận xóa sạch dữ liệu

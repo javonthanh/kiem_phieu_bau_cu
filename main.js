@@ -108,7 +108,10 @@ function createWindow() {
 
     // Không cho nhỏ hơn 70% để tránh vỡ layout
     zoomFactor = Math.max(0.7, zoomFactor);
-
+    win.webContents.on('did-finish-load', () => {
+        win.webContents.setZoomFactor(zoomFactor);
+    });
+    console.log(`Màn hình hiện tại: ${width}x${height}\nỨng dụng sẽ tự động điều chỉnh giao diện cho phù hợp.`);
 
     if (!app.isPackaged) {
         win.loadURL('http://localhost:3000');
@@ -116,18 +119,6 @@ function createWindow() {
         loadURL(win);
     }
 
-    win.webContents.on('did-finish-load', () => {
-        setTimeout(() => {
-            win.show();
-            win.webContents.setZoomFactor(zoomFactor);
-            win.focus();
-            win.moveTop();
-        }, 100);
-    });
-
-    win.on('focus', () => {
-        win.webContents.focus();
-    });
 }
 
 ipcMain.handle('save-data-backup', async (_event, data) => {
