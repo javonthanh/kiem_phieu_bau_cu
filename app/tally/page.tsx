@@ -32,6 +32,7 @@ import {
   Upload,
   Database,
   Users,
+ Building,
   EyeOff,
   Eye,
   ChevronDown,
@@ -68,6 +69,7 @@ export default function TallyPage() {
   const [error, setError] = useState("");
   const [isBackedUp, setIsBackedUp] = useState([true, "Đang chờ..."]);
   const [aiThreshold, setAiThreshold] = useState(0.85);
+  const [stepSelect, setStepSelect] = useState(25);
   const [resizingId, setResizingId] = useState<number | null>(null);
   const [showSettings, setShowSettings] = React.useState(false);
   const [showCurrentVotePanel, setShowCurrentVotePanel] = useState(true);
@@ -473,7 +475,7 @@ export default function TallyPage() {
     setIsBusy(true);
     let savedCount = 0;
     const TARGET_SIZE = 224; // Kích thước đầu ra cố định
-    const step = 25; // Bước nhảy tịnh tiến (stride)
+    const step = stepSelect; // Bước nhảy tịnh tiến (stride)
 
     try {
       for (const job of currentJobs) {
@@ -541,7 +543,8 @@ export default function TallyPage() {
     } finally {
       setIsBusy(false);
     }
-  }, []);
+  }, [stepSelect]);
+
   const runInference = useCallback(async () => {
     if (isTrainMode) {
       alert("Đang ở chế độ TRAIN, không thể quét!");
@@ -593,7 +596,7 @@ export default function TallyPage() {
         // --- LOGIC QUÉT nhiều HÌNH (TRÁI - GIỮA - PHẢI) ---
         const windowSize = sh; // Kích thước vuông lấy theo chiều cao
 
-        const step = 25;
+        const step = stepSelect;
 
         const positions: number[] = [];
 
@@ -736,7 +739,7 @@ export default function TallyPage() {
 
       setTempStates(resetStates);
     }
-  }, [candidates, config, isEditMode, model, aiThreshold, tempStates, targetGroupSize, isTrainMode]);
+  }, [candidates, config, isEditMode, model, aiThreshold, tempStates, targetGroupSize, isTrainMode, stepSelect]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -1928,6 +1931,23 @@ export default function TallyPage() {
                               Cập nhật tệp
                             </span>
                           </label>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-[10px] text-zinc-500 font-bold uppercase flex items-center gap-1">
+                          <Building size={10} /> Step
+                        </span>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            id="model-upload"
+                            value={Number(stepSelect)}
+                            onChange={(e) => setStepSelect(Number(e.target.value))}
+                            step={1}
+                            min={10}
+                            max={224}
+                            className="text-[11px] text-blue-400 font-mono font-bold bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 w-20 text-center outline-none"
+                          />
                         </div>
                       </div>
 
