@@ -46,8 +46,7 @@
 
 // app.whenReady().then(createWindow);
 
-
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const serve = require('electron-serve').default;
@@ -59,10 +58,37 @@ ipcMain.handle('get-machine-id', () => {
     return machineIdSync(true) // true = hashed (khuyến nghị)
 })
 
+// function createWindow() {
+//     const win = new BrowserWindow({
+//         width: 1200,
+//         height: 800,
+//         webPreferences: {
+//             preload: app.isPackaged
+//                 ? path.join(process.resourcesPath, 'preload.js')
+//                 : path.join(__dirname, 'preload.js'),
+//             contextIsolation: true,
+//             nodeIntegration: false
+//         },
+//         icon: path.join(__dirname, 'assets/icon.png')
+//     });
+//     win.maximize();
+//     if (!app.isPackaged) {
+//         win.loadURL('http://localhost:3000');
+//         // Mở DevTools để debug nếu cần
+//         // win.webContents.openDevTools();
+//     } else {
+//         loadURL(win);
+//     }
+// }
+
+
 function createWindow() {
+
+    const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+
     const win = new BrowserWindow({
-        width: 1200,
-        height: 800,
+        width: width,
+        height: height,
         webPreferences: {
             preload: app.isPackaged
                 ? path.join(process.resourcesPath, 'preload.js')
@@ -73,13 +99,35 @@ function createWindow() {
         icon: path.join(__dirname, 'assets/icon.png')
     });
 
+    win.maximize();
+
+    // 🎯 UI chuẩn thiết kế 1920
+    const BASE_WIDTH = 1920;
+
+    let zoomFactor = width / BASE_WIDTH;
+
+    // Không cho nhỏ hơn 70% để tránh vỡ layout
+    zoomFactor = Math.max(0.7, zoomFactor);
+
+
     if (!app.isPackaged) {
         win.loadURL('http://localhost:3000');
-        // Mở DevTools để debug nếu cần
-        // win.webContents.openDevTools();
     } else {
         loadURL(win);
     }
+
+    win.webContents.on('did-finish-load', () => {
+        setTimeout(() => {
+            win.show();
+            win.webContents.setZoomFactor(zoomFactor);
+            win.focus();
+            win.moveTop();
+        }, 100);
+    });
+
+    win.on('focus', () => {
+        win.webContents.focus();
+    });
 }
 
 ipcMain.handle('save-data-backup', async (_event, data) => {

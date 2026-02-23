@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import "./globals.css";
 import { Lock } from "lucide-react";
 import { getHWID, verifyLicenseKey, checkIsActivated, setActivationStatus } from "@/lib/license";
-
+import { AlertProvider } from "@/components/AppAlert";
 export default function RootLayout({
   children,
 }: {
@@ -125,7 +125,9 @@ const handleActivate = () => {
           </div>
         ) : (
           /* NẾU ĐÃ KÍCH HOẠT THÌ HIỆN NỘI DUNG TRANG WEB */
-          children
+          <AlertProvider>
+            {children}
+          </AlertProvider>
         )}
       </body>
     </html>

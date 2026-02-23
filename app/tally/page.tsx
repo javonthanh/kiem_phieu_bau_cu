@@ -243,6 +243,14 @@ export default function TallyPage() {
       .catch((err) => console.log("Chặn phát âm thanh tự động:", err));
   };
 
+    const savedSound = () => {
+    const audio = new Audio("/amthanh/save.mp3"); // Âm thanh "Beep" thành công
+    audio.volume = 0.5; // Chỉnh âm lượng 50%
+    audio
+      .play()
+      .catch((err) => console.log("Chặn phát âm thanh tự động:", err));
+  };
+
   const playErrorSound = () => {
     // Âm thanh "Buzzer" trầm hoặc tiếng "Error"
     const audio = new Audio("/amthanh/Error.mp3");
@@ -1122,7 +1130,8 @@ export default function TallyPage() {
         }
       }
 
-      playSuccessSound();
+      // playSuccessSound();
+      savedSound()
       // Reset trạng thái sau khi lưu
       const resetStates: Record<number, boolean> = {};
       candidates.forEach((c) => {
