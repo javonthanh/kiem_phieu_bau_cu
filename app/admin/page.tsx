@@ -811,19 +811,7 @@ export default function AdminPage() {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="bg-blue-50 p-2 rounded-xl text-blue-600">
-                <Users size={24} />
-              </div>
-              <div>
-                <h2 className="text-lg font-black text-zinc-800 uppercase leading-none">
-                  Cài đặt ứng viên
-                </h2>
-                <p className="text-[10px] font-bold text-zinc-400 mt-1 uppercase tracking-widest">
-                  Tiến độ: {candidates?.length}/{config?.candidateLimit || 0}
-                </p>
-              </div>
-            </div>
+           
 
             <form
               onSubmit={saveConfig}

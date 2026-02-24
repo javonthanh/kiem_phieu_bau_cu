@@ -102,23 +102,22 @@ function createWindow() {
     win.maximize();
 
     // 🎯 UI chuẩn thiết kế 1920
-    const BASE_WIDTH = 1920;
+    const BASE_WIDTH = 1766;
 
     let zoomFactor = width / BASE_WIDTH;
 
+
     // Không cho nhỏ hơn 70% để tránh vỡ layout
-    zoomFactor = Math.max(0.7, zoomFactor);
+    // zoomFactor = Math.max(0.7, zoomFactor);
     win.webContents.on('did-finish-load', () => {
         win.webContents.setZoomFactor(zoomFactor);
     });
-    console.log(`Màn hình hiện tại: ${width}x${height}\nỨng dụng sẽ tự động điều chỉnh giao diện cho phù hợp.`);
 
     if (!app.isPackaged) {
         win.loadURL('http://localhost:3000');
     } else {
         loadURL(win);
     }
-
 }
 
 ipcMain.handle('save-data-backup', async (_event, data) => {
